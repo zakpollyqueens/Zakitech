@@ -58,7 +58,6 @@ Deno.serve(async(req:Request)=>{
   if(!/^[a-z0-9._-]{3,32}$/.test(username))return reply(400,{error:"Username must be 3–32 characters using letters, numbers, dots, underscores or hyphens."});
   const {data:target,error:targetError}=await admin.from("zt_profiles").select("user_id,role").eq("user_id",id).maybeSingle();
   if(targetError||!target)return reply(404,{error:"Staff account not found."});
-  if(target.role==="owner"&&actor.role!=="owner")return reply(403,{error:"Only the CEO can change the CEO's login username."});
   const {data:existing,error:lookupError}=await admin.from("zt_profiles").select("user_id").ilike("username",username).neq("user_id",id).maybeSingle();
   if(lookupError)return reply(500,{error:"Could not verify username availability."});
   if(existing)return reply(409,{error:"That username is already assigned. Choose another one."});
