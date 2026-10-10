@@ -1,127 +1,18 @@
 (() => {
-  "use strict";
-
-  const shell = document.querySelector(".app-shell");
-  const welcomeScreen = document.getElementById("welcomeScreen");
-  const signinScreen = document.getElementById("signinScreen");
-  const username = document.getElementById("username");
-  const password = document.getElementById("password");
-  const form = document.getElementById("signinForm");
-  const formMessage = document.getElementById("formMessage");
-  const togglePassword = document.getElementById("togglePassword");
-  const soundToggle = document.getElementById("soundToggle");
-  const soundLabel = document.getElementById("soundLabel");
-  const toast = document.getElementById("toast");
-  const signInButton = document.getElementById("signInButton");
-  let soundEnabled = false;
-  let audioContext = null;
-  let toastTimer = null;
-
-  document.getElementById("year").textContent = String(new Date().getFullYear());
-
-  function showSignin() {
-    shell.classList.add("show-signin");
-    welcomeScreen.setAttribute("aria-hidden", "true");
-    welcomeScreen.inert = true;
-    signinScreen.removeAttribute("aria-hidden");
-    signinScreen.inert = false;
-    window.setTimeout(() => username.focus({ preventScroll: true }), 250);
-  }
-
-  // Let the welcome greeting breathe for three seconds before the form arrives.
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  window.setTimeout(showSignin, reducedMotion ? 150 : 3000);
-
-  function showToast(message) {
-    toast.textContent = message;
-    toast.classList.add("visible");
-    window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 3800);
-  }
-
-  togglePassword.addEventListener("click", () => {
-    const reveal = password.type === "password";
-    password.type = reveal ? "text" : "password";
-    togglePassword.textContent = reveal ? "Hide" : "Show";
-    togglePassword.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
-    password.focus({ preventScroll: true });
-  });
-
-  function playGreetingTune() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) {
-      showToast("This browser does not support the welcome tune.");
-      return;
-    }
-    try {
-      if (!audioContext) audioContext = new AudioCtx();
-      if (audioContext.state === "suspended") audioContext.resume();
-      const notes = [
-        { frequency: 523.25, at: 0, duration: 0.17 },
-        { frequency: 659.25, at: 0.16, duration: 0.17 },
-        { frequency: 783.99, at: 0.32, duration: 0.2 },
-        { frequency: 1046.5, at: 0.54, duration: 0.32 }
-      ];
-      notes.forEach((note) => {
-        const oscillator = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        oscillator.type = "sine";
-        oscillator.frequency.value = note.frequency;
-        gain.gain.setValueAtTime(0.0001, audioContext.currentTime + note.at);
-        gain.gain.exponentialRampToValueAtTime(0.11, audioContext.currentTime + note.at + 0.025);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + note.at + note.duration);
-        oscillator.connect(gain);
-        gain.connect(audioContext.destination);
-        oscillator.start(audioContext.currentTime + note.at);
-        oscillator.stop(audioContext.currentTime + note.at + note.duration + 0.03);
-      });
-    } catch (error) {
-      console.warn("Welcome tune could not be played.", error);
-      showToast("The welcome tune could not be played on this device.");
-    }
-  }
-
-  soundToggle.addEventListener("click", () => {
-    soundEnabled = !soundEnabled;
-    soundToggle.setAttribute("aria-pressed", String(soundEnabled));
-    soundLabel.textContent = soundEnabled ? "Sound on" : "Sound off";
-    soundToggle.setAttribute("aria-label", soundEnabled ? "Turn welcome sound off" : "Turn welcome sound on");
-    if (soundEnabled) {
-      playGreetingTune();
-      showToast("Welcome tune enabled.");
-    } else if (audioContext && audioContext.state !== "closed") {
-      audioContext.suspend();
-    }
-  });
-
-  document.getElementById("forgotPassword").addEventListener("click", (event) => {
-    event.preventDefault();
-    showToast("Password recovery will be available after the ZakiTech authentication service is connected.");
-  });
-
-  document.getElementById("createAccount").addEventListener("click", () => {
-    showToast("Account creation is the next setup step. Authentication is not connected yet.");
-  });
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    formMessage.textContent = "";
-    const identity = username.value.trim();
-    const secret = password.value;
-
-    if (!identity) {
-      formMessage.textContent = "Please enter your username or email.";
-      username.focus();
-      return;
-    }
-    if (!secret) {
-      formMessage.textContent = "Please enter your password.";
-      password.focus();
-      return;
-    }
-
-    // Do not pretend to authenticate until a real, server-verified provider is configured.
-    formMessage.textContent = "Sign-in is not connected yet. Your details have not been sent or saved. Authentication will be configured next.";
-    showToast("The sign-in design is ready; secure authentication is the next step.");
-  });
+"use strict";
+const shell=document.querySelector(".app-shell"),welcomeScreen=document.getElementById("welcomeScreen"),signinScreen=document.getElementById("signinScreen"),username=document.getElementById("username"),password=document.getElementById("password"),form=document.getElementById("signinForm"),formMessage=document.getElementById("formMessage"),togglePassword=document.getElementById("togglePassword"),soundToggle=document.getElementById("soundToggle"),soundLabel=document.getElementById("soundLabel"),toast=document.getElementById("toast"),signInButton=document.getElementById("signInButton");
+let soundEnabled=false,audioContext=null,toastTimer=null;
+document.getElementById("year").textContent=String(new Date().getFullYear());
+const client=window.ZakiTechSupabase,reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function showSignin(){shell.classList.add("show-signin");welcomeScreen.setAttribute("aria-hidden","true");welcomeScreen.inert=true;signinScreen.removeAttribute("aria-hidden");signinScreen.inert=false;window.setTimeout(()=>username.focus({preventScroll:true}),250)}
+window.setTimeout(showSignin,reducedMotion?150:3000);
+function showToast(m){toast.textContent=m;toast.classList.add("visible");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("visible"),3800)}
+function setMessage(m,good=false){formMessage.textContent=m;formMessage.style.color=good?"#75e7c3":""}
+togglePassword.addEventListener("click",()=>{const reveal=password.type==="password";password.type=reveal?"text":"password";togglePassword.textContent=reveal?"Hide":"Show";togglePassword.setAttribute("aria-label",reveal?"Hide password":"Show password");password.focus({preventScroll:true})});
+function playGreetingTune(){const A=window.AudioContext||window.webkitAudioContext;if(!A)return showToast("This browser does not support the welcome tune.");try{if(!audioContext)audioContext=new A();if(audioContext.state==="suspended")audioContext.resume();[{f:523.25,t:0,d:.17},{f:659.25,t:.16,d:.17},{f:783.99,t:.32,d:.2},{f:1046.5,t:.54,d:.32}].forEach(n=>{const o=audioContext.createOscillator(),g=audioContext.createGain();o.type="sine";o.frequency.value=n.f;g.gain.setValueAtTime(.0001,audioContext.currentTime+n.t);g.gain.exponentialRampToValueAtTime(.11,audioContext.currentTime+n.t+.025);g.gain.exponentialRampToValueAtTime(.0001,audioContext.currentTime+n.t+n.d);o.connect(g);g.connect(audioContext.destination);o.start(audioContext.currentTime+n.t);o.stop(audioContext.currentTime+n.t+n.d+.03)})}catch(e){console.warn("Welcome tune could not be played.",e)}}
+soundToggle.addEventListener("click",()=>{soundEnabled=!soundEnabled;soundToggle.setAttribute("aria-pressed",String(soundEnabled));soundLabel.textContent=soundEnabled?"Sound on":"Sound off";soundToggle.setAttribute("aria-label",soundEnabled?"Turn welcome sound off":"Turn welcome sound on");if(soundEnabled){playGreetingTune();showToast("Welcome tune enabled.")}else if(audioContext&&audioContext.state!=="closed")audioContext.suspend()});
+async function checkSession(){if(!client)return;try{const {data:{session}}=await client.auth.getSession();if(!session)return;const {data:p,error}=await client.from("zt_profiles").select("user_id,status").eq("user_id",session.user.id).maybeSingle();if(!error&&p&&p.status==="active")location.replace("workspace.html");else await client.auth.signOut()}catch(e){console.warn("Session check failed.",e)}}
+void checkSession();
+document.getElementById("forgotPassword").addEventListener("click",e=>{e.preventDefault();showToast("For a password reset, contact the ZakiTech owner or an authorized administrator.")});
+form.addEventListener("submit",async e=>{e.preventDefault();setMessage("");const identity=username.value.trim(),secret=password.value;if(!identity){setMessage("Enter your assigned username or email.");username.focus();return}if(!secret){setMessage("Enter your password.");password.focus();return}if(!client){setMessage("Secure sign-in is not configured. Please try again later.");return}signInButton.disabled=true;signInButton.querySelector("span").textContent="Checking your details…";try{const response=await fetch(window.ZAKITECH_CONFIG.supabaseUrl+"/functions/v1/zakitech-signin",{method:"POST",headers:{"Content-Type":"application/json","apikey":window.ZAKITECH_CONFIG.publishableKey},body:JSON.stringify({identity,password:secret})});const result=await response.json().catch(()=>({}));if(!response.ok||!result.session)throw new Error(result.error||"The sign-in details are incorrect or this account is not active.");const {error:se}=await client.auth.setSession(result.session);if(se)throw se;const {data:{user}}=await client.auth.getUser();const {data:p,error:pe}=await client.from("zt_profiles").select("user_id,status").eq("user_id",user.id).maybeSingle();if(pe||!p||p.status!=="active"){await client.auth.signOut();throw new Error("This account is not active. Contact your ZakiTech administrator.")}setMessage("Sign-in successful. Opening your workspace…",true);location.replace("workspace.html")}catch(e){console.error("ZakiTech sign-in failed:",e);setMessage(e.message||"Sign-in failed. Please check your details.");showToast("Unable to sign in.")}finally{signInButton.disabled=false;signInButton.querySelector("span").textContent="Sign in to ZakiTech"}});
 })();
