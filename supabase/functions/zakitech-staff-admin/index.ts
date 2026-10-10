@@ -24,11 +24,21 @@ Deno.serve(async(req:Request)=>{
   if(display.length<2||display.length>100)return reply(400,{error:"Display name must be between 2 and 100 characters."});
   if(phone.length>30|| (phone && !/^[+0-9() .-]{6,30}$/.test(phone)))return reply(400,{error:"Enter a valid phone number."});
   if(avatarPath && (!avatarPath.startsWith(ud.user.id+"/") || avatarPath.includes("..") || avatarPath.length>300))return reply(400,{error:"Invalid profile image path."});
-  const updates:{display_name:string;phone:string|null;updated_at:string;avatar_path?:string|null}={display_name:display,phone:phone||null,updated_at:new Date().toISOString()};
+  const updates:{display_name:string;phone:string|null;updated_at:string;avatar_path?:string|null;username?:string}={display_name:display,phone:phone||null,updated_at:new Date().toISOString()};
   if(Object.prototype.hasOwnProperty.call(b,"avatar_path"))updates.avatar_path=avatarPath||null;
+  if(Object.prototype.hasOwnProperty.call(b,"username")){
+   if(!["owner","vice_admin"].includes(actor.role))return reply(403,{error:"Only the CEO or an authorized administrator can change a login username."});
+   const username=typeof b.username==="string"?b.username.trim().toLowerCase():"";
+   if(!/^[a-z0-9._-]{3,32}$/.test(username))return reply(400,{error:"Username must be 3–32 characters using letters, numbers, dots, underscores or hyphens."});
+   const {data:existing,error:lookupError}=await admin.from("zt_profiles").select("user_id").ilike("username",username).neq("user_id",ud.user.id).maybeSingle();
+   if(lookupError)return reply(500,{error:"Could not verify username availability."});
+   if(existing)return reply(409,{error:"That username is already assigned. Choose another one."});
+   updates.username=username;
+  }
   const {error}=await admin.from("zt_profiles").update(updates).eq("user_id",ud.user.id);
   if(error)return reply(400,{error:"Could not save your profile changes."});
-  return reply(200,{message:"Profile updated successfully."});
+  if(updates.username){await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,target_user_id:ud.user.id,event_type:"username_changed",details:{username:updates.username}})}
+  return reply(200,{message:updates.username?"Profile and login username updated successfully.":"Profile updated successfully."});
  }
  if(b.action==="list-directory"){
   const {data,error}=await admin.from("zt_profiles").select("user_id,username,display_name,role,avatar_path").eq("status","active").order("display_name",{ascending:true});
@@ -42,6 +52,21 @@ Deno.serve(async(req:Request)=>{
   return reply(200,{staff});
  }
  if(!["owner","vice_admin"].includes(actor.role))return reply(403,{error:"You do not have permission to manage staff."});
+ if(b.action==="update-username"){
+  const id=typeof b.user_id==="string"?b.user_id:ud.user.id;
+  const username=typeof b.username==="string"?b.username.trim().toLowerCase():"";
+  if(!/^[a-z0-9._-]{3,32}$/.test(username))return reply(400,{error:"Username must be 3–32 characters using letters, numbers, dots, underscores or hyphens."});
+  const {data:target,error:targetError}=await admin.from("zt_profiles").select("user_id,role").eq("user_id",id).maybeSingle();
+  if(targetError||!target)return reply(404,{error:"Staff account not found."});
+  if(target.role==="owner"&&actor.role!=="owner")return reply(403,{error:"Only the CEO can change the CEO's login username."});
+  const {data:existing,error:lookupError}=await admin.from("zt_profiles").select("user_id").ilike("username",username).neq("user_id",id).maybeSingle();
+  if(lookupError)return reply(500,{error:"Could not verify username availability."});
+  if(existing)return reply(409,{error:"That username is already assigned. Choose another one."});
+  const {error}=await admin.from("zt_profiles").update({username,updated_at:new Date().toISOString()}).eq("user_id",id);
+  if(error)return reply(400,{error:"Could not update the login username."});
+  await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,target_user_id:id,event_type:"username_changed",details:{username}});
+  return reply(200,{message:"Login username updated. The account can use the new username at the next sign-in.",username});
+ }
  if(b.action==="list-staff"){
   const {data,error}=await admin.from("zt_profiles").select("user_id,username,email,display_name,phone,avatar_path,role,status,must_change_password,created_at").order("created_at",{ascending:false});
   if(error)return reply(500,{error:"Could not load staff records."});
