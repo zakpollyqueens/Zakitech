@@ -72,6 +72,26 @@ function renderDashboard(){
  put("metricTaskNote",openTasks.filter(t=>t.status==="in_progress").length+" in progress · "+openTasks.filter(t=>t.status==="submitted").length+" submitted");
  put("metricBuildNote",pendingBuilds.filter(b=>b.status==="approved").length+" approved · awaiting publication");
  put("bannerProductCount",String(state.products.length).padStart(2,"0"));
+ const drawBars=(id,rows)=>{
+  const box=$(id);if(!box)return;box.replaceChildren();
+  const max=Math.max(1,...rows.map(r=>r.value));
+  if(!rows.some(r=>r.value)){box.append(node("div","analytics-empty","No records yet. Your live chart will update as company activity grows."));return}
+  rows.forEach(r=>{const row=node("div","analytics-bar-row"),label=node("span","analytics-bar-label",r.label),track=node("div","analytics-bar-track"),fill=node("div","analytics-bar-fill"),value=node("span","analytics-bar-value",r.value);fill.style.width=(r.value/max*100)+"%";fill.setAttribute("role","img");fill.setAttribute("aria-label",r.label+": "+r.value);track.append(fill);row.append(label,track,value);box.append(row)});
+ };
+ const lifecycle=[
+  {label:"Planned",value:state.products.filter(p=>String(p.status||"").toLowerCase()==="planned").length},
+  {label:"In development",value:state.products.filter(p=>String(p.status||"").toLowerCase()==="in_development").length},
+  {label:"Launched",value:state.products.filter(p=>["launched","published"].includes(String(p.status||"").toLowerCase())).length},
+  {label:"Other stages",value:state.products.filter(p=>!["planned","in_development","launched","published"].includes(String(p.status||"").toLowerCase())).length}
+ ];
+ const taskStages=[
+  {label:"Assigned",value:state.tasks.filter(t=>["assigned","open"].includes(String(t.status||"").toLowerCase())).length},
+  {label:"In progress",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="in_progress").length},
+  {label:"Submitted",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="submitted").length},
+  {label:"Completed",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="completed").length}
+ ];
+ drawBars("portfolioAnalytics",lifecycle);drawBars("taskAnalytics",taskStages);
+
  const projects=$("dashboardProjects");projects.replaceChildren();
  if(!state.products.length){projects.append(node("div","dashboard-empty","No products have been added yet."))}
  state.products.slice(0,4).forEach(p=>{
