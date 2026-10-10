@@ -10,7 +10,7 @@
 <div class="avatar-editor"><div class="avatar-preview-wrap"><img id="avatarPreview" alt="Your profile photo" hidden><span id="avatarFallback" aria-hidden="true">Z</span></div><div class="avatar-controls"><strong>Profile photo</strong><p>JPG, PNG or WebP · up to 2 MB</p><label class="file-button" for="avatarFile">Choose photo</label><input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp" hidden><button id="removeAvatar" class="small-action" type="button">Remove photo</button></div></div>
 <label>Display name<input id="profileDisplayName" name="display_name" required minlength="2" maxlength="100" autocomplete="name"></label>
 <label>Phone number<input id="profilePhone" name="phone" type="tel" maxlength="30" autocomplete="tel" placeholder="+256…"></label>
-<label>Assigned username<input id="profileUsername" type="text" readonly aria-describedby="usernameHelp"></label><p id="usernameHelp" class="field-help">Your company-assigned username cannot be changed here.</p>
+<label>Login username<input id="profileUsername" name="username" type="text" minlength="3" maxlength="32" pattern="[A-Za-z0-9._-]+" autocomplete="username" aria-describedby="usernameHelp" readonly></label><p id="usernameHelp" class="field-help">Your login username is managed by the CEO or an authorized administrator.</p>
 <p id="profileMessage" class="inline-message" role="status" aria-live="polite"></p><button class="primary-button" type="submit">Save profile changes</button>
 </form>
 <div class="account-forms">
