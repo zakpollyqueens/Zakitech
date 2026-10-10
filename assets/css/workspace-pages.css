@@ -121,3 +121,9 @@
 .staff-chat-message-meta strong{color:#bcaaff}.own-message .staff-chat-message-meta strong{color:#8fe4ba}
 .staff-chat-task-bubble{border-color:rgba(255,184,107,.28);background:linear-gradient(145deg,#342a40,#182d3d)}
 @media(prefers-reduced-motion:reduce){.analytics-bar-fill{transition:none}}
+
+
+/* Reduce cyan dominance in the shared component system */
+.workspace-page-body .page-pill{color:#c8bbff;background:rgba(181,154,255,.09);border-color:rgba(181,154,255,.2)}
+.workspace-page-body .page-button,.workspace-page-body .page-link-button{color:#d4caff;background:rgba(181,154,255,.1);border-color:rgba(181,154,255,.23)}
+.workspace-page-body .page-button:hover,.workspace-page-body .page-link-button:hover{background:rgba(181,154,255,.17)}
