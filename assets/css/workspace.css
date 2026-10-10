@@ -338,3 +338,7 @@ body::after{
 .build-board-empty{padding:13px 9px;color:#6f87a0;font-size:.69rem;line-height:1.5;border:1px dashed rgba(150,190,225,.1);border-radius:10px;text-align:center}
 @media(max-width:1050px){.build-board{grid-template-columns:repeat(4,minmax(245px,1fr))}}
 @media(max-width:600px){.build-board{grid-template-columns:repeat(4,minmax(260px,1fr));margin-right:-3px}}
+
+/* Navigation and dashboard shortcuts now route to dedicated HTML pages */
+#workspaceNav .nav-button,.widget-link,.pipeline-button{text-decoration:none}
+#workspaceNav .nav-button{font-family:inherit}
