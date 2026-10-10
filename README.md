@@ -21,7 +21,7 @@ A Zakmolanitech Solutions private company-management application.
 - The Supabase service-role key is used only inside Edge Functions and must never be committed to this repository.
 - `zakitech-signin` checks the server-managed profile status before authenticating a username/email and password.
 - `zakitech-staff-admin` requires a valid session and checks the server-managed role before listing, inviting, or suspending staff.
-- Auth-user inserts without an invitation timestamp are rejected by a database trigger to prevent public self-registration.
+- Public self-registration must be disabled in Supabase Authentication settings; staff accounts are created only by the authorized admin workflow. (A faulty database trigger that blocked valid invitations was removed.)
 - Profile role and status values are stored in `zt_profiles`; user-editable Auth metadata is not used to grant permissions.
 - Audit events are stored in `zt_audit_events`.
 
@@ -32,7 +32,7 @@ Supabase project: `mmozesoarwkimhyloivu` (region: eu-west-1).
 Database migrations:
 - `20261010000000_zakitech_private_staff_access.sql`
 - `20261010000001_zakitech_audit_access_and_indexes.sql`
-- `20261010000002_zakitech_invite_only_auth_guard.sql`
+- `20261010000002_zakitech_invite_only_auth_guard.sql` (documents the correct invite-only configuration; intentionally does not add a blocking trigger)
 
 Edge Functions:
 - `zakitech-signin` (public endpoint, validates credentials itself; JWT gateway verification is intentionally disabled for sign-in only)
