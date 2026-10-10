@@ -4,11 +4,16 @@ const client=window.ZakiTechSupabase;
 const msg=document.getElementById("pageMessage"),section=document.getElementById("staffSection"),list=document.getElementById("staffList"),form=document.getElementById("createStaffForm"),signout=document.getElementById("signOutButton");
 const profileForm=document.getElementById("profileForm"),emailForm=document.getElementById("emailForm"),passwordForm=document.getElementById("passwordForm");
 const profileMessage=document.getElementById("profileMessage"),emailMessage=document.getElementById("emailMessage"),passwordMessage=document.getElementById("passwordMessage");
+const menuToggle=document.getElementById("menuToggle"),workspaceNav=document.getElementById("workspaceNav"),navScrim=document.getElementById("navScrim");
 const avatarFile=document.getElementById("avatarFile"),avatarPreview=document.getElementById("avatarPreview"),avatarFallback=document.getElementById("avatarFallback"),directoryList=document.getElementById("directoryList");
 let profile=null,currentUser=null,selectedAvatar=null,removeAvatarRequested=false;
 document.getElementById("year").textContent=new Date().getFullYear();
 const say=(s,k="")=>{msg.textContent=s;msg.className="page-message "+k};
 const fieldSay=(el,s,k="")=>{el.textContent=s;el.className="inline-message "+k};
+function closeNav(){workspaceNav.classList.remove("open");menuToggle.setAttribute("aria-expanded","false");menuToggle.setAttribute("aria-label","Open navigation");navScrim.hidden=true}
+function openNav(){workspaceNav.classList.add("open");menuToggle.setAttribute("aria-expanded","true");menuToggle.setAttribute("aria-label","Close navigation");navScrim.hidden=false}
+function showView(view){document.querySelectorAll(".workspace-view").forEach(panel=>{panel.hidden=panel.dataset.panel!==view});document.querySelectorAll(".nav-button[data-view]").forEach(button=>button.classList.toggle("active",button.dataset.view===view));closeNav();window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}
+menuToggle.addEventListener("click",()=>workspaceNav.classList.contains("open")?closeNav():openNav());navScrim.addEventListener("click",closeNav);document.querySelectorAll(".nav-button[data-view]").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.view==="staffSection"&&section.hidden)return;showView(button.dataset.view)}));document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNav()});
 const roleName=r=>({owner:"Owner / CEO",vice_admin:"Vice Administrator",web_developer:"Web Developer",application_developer:"Application Developer",engineer:"Engineer",staff:"Staff Member"})[r]||r;
 async function adminCall(body){
  const {data,error}=await client.functions.invoke("zakitech-staff-admin",{body});
@@ -43,6 +48,7 @@ async function loadProfile(){
  document.getElementById("newEmail").value=p.email||user.email||"";
  setAvatar(await signedAvatar(p.avatar_path),p.display_name);
  say("Secure session verified.","good");
+ if(["owner","vice_admin"].includes(p.role))document.getElementById("navStaffButton").hidden=false;
  if(p.must_change_password)say("Your account is active. Please set a personal password from Profile & security.", "good");
 }
 async function renderDirectory(){
@@ -173,6 +179,7 @@ form.addEventListener("submit",async e=>{
 document.getElementById("refreshStaff").addEventListener("click",loadStaff);
 signout.addEventListener("click",async()=>{signout.disabled=true;try{await client.auth.signOut()}finally{location.replace("index.html")}});
 async function start(){
+ showView("dashboard");
  if(!client){say("Secure authentication is not configured.","error");return}
  const {data:{session}}=await client.auth.getSession();if(!session){location.replace("index.html");return}
  try{await loadProfile();await renderDirectory();if(["owner","vice_admin"].includes(profile.role)){section.hidden=false;if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}await loadStaff()}}
