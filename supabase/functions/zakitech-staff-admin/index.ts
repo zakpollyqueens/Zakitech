@@ -15,11 +15,43 @@ Deno.serve(async(req:Request)=>{
  const {data:ud,error:ue}=await admin.auth.getUser(token);
  if(ue||!ud.user)return reply(401,{error:"Your session is invalid. Sign in again."});
  const {data:actor,error:ae}=await admin.from("zt_profiles").select("user_id,role,status").eq("user_id",ud.user.id).maybeSingle();
- if(ae||!actor||actor.status!=="active"||!["owner","vice_admin"].includes(actor.role))return reply(403,{error:"You do not have permission to manage staff."});
+ if(ae||!actor||actor.status!=="active")return reply(403,{error:"Your account is not active."});
  let b:Record<string,unknown>;try{b=await req.json()}catch{return reply(400,{error:"Invalid request."})}
+ if(b.action==="update-profile"){
+  const display=typeof b.display_name==="string"?b.display_name.trim():"";
+  const phone=typeof b.phone==="string"?b.phone.trim():"";
+  const avatarPath=typeof b.avatar_path==="string"?b.avatar_path.trim():"";
+  if(display.length<2||display.length>100)return reply(400,{error:"Display name must be between 2 and 100 characters."});
+  if(phone.length>30|| (phone && !/^[+0-9() .-]{6,30}$/.test(phone)))return reply(400,{error:"Enter a valid phone number."});
+  if(avatarPath && (!avatarPath.startsWith(ud.user.id+"/") || avatarPath.includes("..") || avatarPath.length>300))return reply(400,{error:"Invalid profile image path."});
+  const updates:{display_name:string;phone:string|null;updated_at:string;avatar_path?:string|null}={display_name:display,phone:phone||null,updated_at:new Date().toISOString()};
+  if(Object.prototype.hasOwnProperty.call(b,"avatar_path"))updates.avatar_path=avatarPath||null;
+  const {error}=await admin.from("zt_profiles").update(updates).eq("user_id",ud.user.id);
+  if(error)return reply(400,{error:"Could not save your profile changes."});
+  return reply(200,{message:"Profile updated successfully."});
+ }
+ if(b.action==="list-directory"){
+  const {data,error}=await admin.from("zt_profiles").select("user_id,username,display_name,role,avatar_path").eq("status","active").order("display_name",{ascending:true});
+  if(error)return reply(500,{error:"Could not load the team directory."});
+  const staff=[];
+  for(const p of data||[]){
+   let avatar_url=null;
+   if(p.avatar_path){const {data:signed}=await admin.storage.from("zt-profile-avatars").createSignedUrl(p.avatar_path,3600);avatar_url=signed?.signedUrl||null}
+   staff.push({user_id:p.user_id,username:p.username,display_name:p.display_name,role:p.role,avatar_url});
+  }
+  return reply(200,{staff});
+ }
+ if(!["owner","vice_admin"].includes(actor.role))return reply(403,{error:"You do not have permission to manage staff."});
  if(b.action==="list-staff"){
-  const {data,error}=await admin.from("zt_profiles").select("user_id,username,email,display_name,role,status,must_change_password,created_at").order("created_at",{ascending:false});
-  if(error)return reply(500,{error:"Could not load staff records."});return reply(200,{staff:data||[]});
+  const {data,error}=await admin.from("zt_profiles").select("user_id,username,email,display_name,phone,avatar_path,role,status,must_change_password,created_at").order("created_at",{ascending:false});
+  if(error)return reply(500,{error:"Could not load staff records."});
+  const staff=[];
+  for(const p of data||[]){
+   let avatar_url=null;
+   if(p.avatar_path){const {data:signed}=await admin.storage.from("zt-profile-avatars").createSignedUrl(p.avatar_path,3600);avatar_url=signed?.signedUrl||null}
+   staff.push({...p,avatar_url});
+  }
+  return reply(200,{staff});
  }
  if(b.action==="create-staff"){
   const username=typeof b.username==="string"?b.username.trim().toLowerCase():"",email=typeof b.email==="string"?b.email.trim().toLowerCase():"",display=typeof b.display_name==="string"?b.display_name.trim():"",role=typeof b.role==="string"?b.role as Role:"staff";
