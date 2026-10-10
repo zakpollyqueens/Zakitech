@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071a33">
+  <meta name="description" content="ZakiTech — one place to manage your team's products, projects, and technology.">
+  <title>Welcome to ZakiTech</title>
+  <link rel="icon" href="assets/images/zakitech-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="ZakiTech home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img"><path d="M9 10h30v7L20 32h19v7H9v-7l19-15H9z" fill="currentColor"/><circle cx="37" cy="10" r="4" fill="#69e2f5"/></svg>
+        </span>
+        <span class="brand-word">Zaki<span>Tech</span></span>
+      </a>
+      <div class="topbar-note"><span class="status-dot"></span> Your technology. Connected.</div>
+    </header>
+
+    <section class="welcome-screen" id="welcomeScreen" aria-labelledby="welcomeTitle">
+      <div class="welcome-content">
+        <div class="welcome-orbit" aria-hidden="true">
+          <span class="orbit orbit-a"></span><span class="orbit orbit-b"></span>
+          <div class="mascot">
+            <svg viewBox="0 0 220 220" role="img" aria-label="Friendly ZakiTech robot mascot">
+              <defs>
+                <linearGradient id="robotBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d8f5ff"/></linearGradient>
+                <linearGradient id="robotFace" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#123b67"/><stop offset="1" stop-color="#071a33"/></linearGradient>
+              </defs>
+              <path d="M110 25v18" stroke="#68e2f5" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="110" cy="19" r="9" fill="#68e2f5"/>
+              <rect x="44" y="47" width="132" height="111" rx="36" fill="url(#robotBody)" stroke="#9beafa" stroke-width="3"/>
+              <rect x="57" y="62" width="106" height="72" rx="25" fill="url(#robotFace)"/>
+              <ellipse cx="84" cy="91" rx="9" ry="12" fill="#6ee8f7" class="robot-eye"/>
+              <ellipse cx="136" cy="91" rx="9" ry="12" fill="#6ee8f7" class="robot-eye"/>
+              <path d="M88 112q22 17 44 0" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+              <path d="M44 83H29v38h17M176 83h15v38h-17" fill="none" stroke="#d8f5ff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="68" y="151" width="84" height="25" rx="12" fill="#25b9d5"/>
+              <path d="M78 177v13M142 177v13" stroke="#d8f5ff" stroke-width="12" stroke-linecap="round"/>
+              <circle cx="83" cy="164" r="3" fill="#ffffff"/><circle cx="96" cy="164" r="3" fill="#ffffff"/><circle cx="109" cy="164" r="3" fill="#ffffff"/>
+              <path d="M151 48l7-9 7 9" fill="none" stroke="#68e2f5" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="spark spark-one">✦</span><span class="spark spark-two">✧</span><span class="spark spark-three">✦</span>
+        </div>
+        <p class="eyebrow"><span></span> THE FUTURE STARTS HERE</p>
+        <h1 id="welcomeTitle">Welcome to <span>ZakiTech</span></h1>
+        <p class="welcome-copy">One home for your people, projects, products, and big ideas.</p>
+        <div class="welcome-progress" aria-label="Preparing your sign-in screen"><span></span></div>
+        <p class="welcome-caption">Getting your workspace ready…</p>
+      </div>
+    </section>
+
+    <section class="signin-screen" id="signinScreen" aria-labelledby="signinTitle" aria-hidden="true" inert>
+      <div class="signin-layout">
+        <aside class="signin-intro">
+          <div class="intro-badge"><span class="status-dot"></span> YOUR WORKSPACE AWAITS</div>
+          <h2>Big ideas.<br><span>Built together.</span></h2>
+          <p>Sign in to manage your team and keep every ZakiTech product moving forward.</p>
+          <div class="mini-product-card">
+            <div class="product-icon" aria-hidden="true">Z</div>
+            <div><strong>One connected workspace</strong><span>Projects · Products · People</span></div>
+            <span class="card-arrow" aria-hidden="true">↗</span>
+          </div>
+          <div class="intro-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+        </aside>
+
+        <div class="signin-card">
+          <div class="card-heading">
+            <div class="card-logo" aria-hidden="true">
+              <svg viewBox="0 0 48 48"><path d="M9 10h30v7L20 32h19v7H9v-7l19-15H9z" fill="currentColor"/><circle cx="37" cy="10" r="4" fill="#69e2f5"/></svg>
+            </div>
+            <p class="eyebrow">GOOD TO HAVE YOU HERE</p>
+            <h1 id="signinTitle">Sign in</h1>
+            <p class="card-subtitle">Enter your details to continue to ZakiTech.</p>
+          </div>
+
+          <form id="signinForm" novalidate>
+            <label for="username">Username or email</label>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2z"/></svg>
+              <input id="username" name="username" type="text" placeholder="Enter your username or email" autocomplete="username" required>
+            </div>
+
+            <div class="password-label-row"><label for="password">Password</label><a href="#" id="forgotPassword">Forgot password?</a></div>
+            <div class="input-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10" width="15" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              <input id="password" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+              <button class="password-toggle" id="togglePassword" type="button" aria-label="Show password">Show</button>
+            </div>
+
+            <div class="form-options"><label class="remember-option"><input id="rememberMe" type="checkbox" checked><span>Keep me signed in</span></label><span class="secure-note"><span>✓</span> Secure access</span></div>
+            <p class="form-message" id="formMessage" role="status" aria-live="polite"></p>
+            <button class="submit-button" id="signInButton" type="submit"><span>Sign in to ZakiTech</span><span aria-hidden="true">→</span></button>
+          </form>
+
+          <div class="form-divider"><span></span><small>NEW TO ZAKITECH?</small><span></span></div>
+          <button class="create-account-button" id="createAccount" type="button">Create an account <span aria-hidden="true">↗</span></button>
+          <p class="card-footnote">By continuing, you agree to use your workspace responsibly.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-footer"><span>© <span id="year"></span> ZakiTech</span><span>Designed for the next big thing <b>✦</b></span></footer>
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="false" aria-label="Turn welcome sound on"><span class="sound-icon" aria-hidden="true">♫</span><span id="soundLabel">Sound off</span></button>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+</body>
+</html>
