@@ -2,8 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json"};
 const reply=(status:number,body:Record<string,unknown>)=>new Response(JSON.stringify(body),{status,headers:cors});
-type Role="owner"|"vice_admin"|"web_developer"|"application_developer"|"engineer"|"staff";
-const roles:Role[]=["owner","vice_admin","web_developer","application_developer","engineer","staff"];
+type Role="owner"|"vice_admin"|"web_developer"|"application_developer"|"engineer"|"staff"|"product_manager"|"project_manager"|"qa_tester"|"ui_ux_designer"|"devops_engineer"|"release_manager"|"notifications_manager"|"announcements_manager"|"support_officer"|"operations_officer"|"security_officer"|"finance_officer";
+const roles:Role[]=["owner","vice_admin","web_developer","application_developer","engineer","staff","product_manager","project_manager","qa_tester","ui_ux_designer","devops_engineer","release_manager","notifications_manager","announcements_manager","support_officer","operations_officer","security_officer","finance_officer"];
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return reply(405,{error:"Method not allowed."});
