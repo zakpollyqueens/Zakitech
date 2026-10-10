@@ -1,7 +1,7 @@
 (()=>{"use strict";
 const client=window.ZakiTechSupabase;if(!client)return;
 const $=id=>document.getElementById(id),page=document.body.dataset.page;
-const names={owner:"Owner / CEO",vice_admin:"Vice Administrator",web_developer:"Web Developer",application_developer:"Application Developer",engineer:"Engineer",staff:"Staff Member"};
+const names={"owner":"Owner / CEO","vice_admin":"Vice Administrator","web_developer":"Web Developer","application_developer":"Application Developer","engineer":"Engineer","staff":"Staff Member","product_manager":"Product Manager","project_manager":"Project Manager","qa_tester":"QA Tester / Quality Assurance","ui_ux_designer":"UI/UX Designer","devops_engineer":"DevOps / Deployment Engineer","release_manager":"Release Manager","notifications_manager":"Notifications Manager","announcements_manager":"Announcements Manager","support_officer":"Support Officer","operations_officer":"Operations Officer","security_officer":"Security Officer","finance_officer":"Finance Officer"};
 let state={profile:null,is_admin:false,products:[],assignments:[],tasks:[],announcements:[],notifications:[],messages:[],staff_messages:[],builds:[],staff:[]};
 const admin=()=>state.is_admin;
 const assigned=(key,pid=null)=>admin()||state.assignments.some(a=>a.workstation===key&&(pid?a.product_id===pid:a.product_id==null));
