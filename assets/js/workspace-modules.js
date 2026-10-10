@@ -105,7 +105,18 @@ function renderDashboard(){
  drawBars("staffAnalytics",workload,"No open staff assignments are recorded yet.");
  const activityDays=Array.from({length:7},(_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(6-i));return d});
  const activityRows=activityDays.map(day=>{const next=new Date(day);next.setDate(next.getDate()+1);const inRange=v=>{if(!v)return false;const d=new Date(v);return !Number.isNaN(d.getTime())&&d>=day&&d<next};const tasks=state.tasks.filter(t=>inRange(t.created_at)||inRange(t.updated_at)).length;const builds=state.builds.filter(b=>inRange(b.submitted_at)||inRange(b.created_at)).length;return {label:day.toLocaleDateString(undefined,{weekday:"short"}),value:tasks+builds}});
+
  drawBars("activityAnalytics",activityRows,"No tasks or builds recorded in the last 7 days.");
+ const achievementRows=[
+  {label:"Tasks completed",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="completed").length},
+  {label:"Products launched",value:state.products.filter(p=>["launched","published"].includes(String(p.status||"").toLowerCase())).length},
+  {label:"Builds approved",value:state.builds.filter(b=>String(b.status||"").toLowerCase()==="approved").length},
+  {label:"Active team members",value:state.staff.filter(p=>String(p.status||"active").toLowerCase()==="active").length}
+ ];
+ drawBars("achievementAnalytics",achievementRows,"Achievements will appear as tasks are completed and products are launched.");
+ const completedByDay=activityDays.map(day=>{const next=new Date(day);next.setDate(next.getDate()+1);const inRange=v=>{if(!v)return false;const d=new Date(v);return !Number.isNaN(d.getTime())&&d>=day&&d<next};return {label:day.toLocaleDateString(undefined,{weekday:"short"}),value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="completed"&&inRange(t.updated_at||t.completed_at)).length}});
+ drawBars("completionAnalytics",completedByDay,"No tasks were marked completed during the last 7 days.");
+
 
  const projects=$("dashboardProjects");projects.replaceChildren();
  if(!state.products.length){projects.append(node("div","dashboard-empty","No products have been added yet."))}
