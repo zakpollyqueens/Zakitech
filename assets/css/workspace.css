@@ -41,3 +41,107 @@
 @media(max-width:680px){.module-form{grid-template-columns:minmax(0,1fr);padding:15px}.module-form label,.module-form label:has(textarea),.module-form label:has(input[type=file]){grid-column:1}.module-card,.module-item{padding:16px}.section-heading{align-items:flex-start;gap:12px;flex-wrap:wrap}.access-chip{white-space:normal}}
 
 .task-sender{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:.82rem;margin-bottom:12px}.task-sender-avatar{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;object-fit:cover;border-radius:50%;background:rgba(104,226,245,.13);color:var(--cyan);font-weight:800;border:1px solid var(--line)}
+
+
+/* ZakiTech animated cyan-blue workspace atmosphere */
+body{
+  position:relative;
+  background-color:#041326;
+  background-image:
+    radial-gradient(ellipse at 12% 12%,rgba(0,190,225,.18) 0%,transparent 34%),
+    radial-gradient(ellipse at 88% 18%,rgba(27,104,220,.18) 0%,transparent 36%),
+    radial-gradient(ellipse at 70% 88%,rgba(0,216,230,.10) 0%,transparent 32%),
+    radial-gradient(ellipse at 35% 65%,rgba(30,73,150,.13) 0%,transparent 42%),
+    linear-gradient(135deg,#041326 0%,#071d37 46%,#04152b 100%);
+  background-size:140% 140%,150% 150%,145% 145%,160% 160%,100% 100%;
+  background-attachment:fixed;
+  animation:ztAtmosphereDrift 26s ease-in-out infinite alternate;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  opacity:.22;
+  background-image:
+    linear-gradient(rgba(111,205,239,.075) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(111,205,239,.075) 1px,transparent 1px);
+  background-size:54px 54px;
+  mask-image:linear-gradient(to bottom,transparent 0%,#000 18%,#000 78%,transparent 100%);
+  animation:ztGridDrift 42s linear infinite;
+}
+body::after{
+  content:"";
+  position:fixed;
+  width:min(42vw,560px);
+  aspect-ratio:1;
+  right:-16vw;
+  top:16vh;
+  z-index:-1;
+  border-radius:50%;
+  pointer-events:none;
+  background:radial-gradient(circle,rgba(27,185,230,.15) 0%,rgba(35,107,207,.08) 34%,transparent 70%);
+  filter:blur(18px);
+  animation:ztGlowFloat 17s ease-in-out infinite alternate;
+}
+.workspace-topbar{
+  position:sticky;
+  top:0;
+  z-index:60;
+  background:rgba(4,17,34,.76);
+  backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  box-shadow:0 8px 32px rgba(0,0,0,.12);
+}
+.welcome-panel{
+  position:relative;
+  isolation:isolate;
+  background:linear-gradient(112deg,rgba(9,47,79,.86),rgba(7,31,58,.78) 55%,rgba(7,47,70,.8));
+  box-shadow:0 24px 70px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.035);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.welcome-panel::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:340px;
+  height:340px;
+  right:6%;
+  top:-220px;
+  border-radius:50%;
+  border:1px solid rgba(102,226,244,.12);
+  box-shadow:0 0 0 28px rgba(102,226,244,.025),0 0 0 58px rgba(102,226,244,.02),0 0 65px rgba(31,177,222,.12);
+  animation:ztRingBreath 9s ease-in-out infinite alternate;
+}
+.quick-card,.staff-panel,.module-card,.module-item{
+  backdrop-filter:blur(14px) saturate(125%);
+  -webkit-backdrop-filter:blur(14px) saturate(125%);
+  box-shadow:0 16px 42px rgba(0,0,0,.11),inset 0 1px rgba(255,255,255,.025);
+  transition:border-color .25s ease,transform .25s ease,background-color .25s ease,box-shadow .25s ease;
+}
+.quick-card:hover,.module-card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(102,226,244,.3);
+  box-shadow:0 20px 48px rgba(0,0,0,.18),0 0 30px rgba(34,190,225,.045);
+}
+.workspace-nav{
+  background:rgba(4,19,38,.96);
+  backdrop-filter:blur(22px) saturate(140%);
+  -webkit-backdrop-filter:blur(22px) saturate(140%);
+}
+@keyframes ztAtmosphereDrift{
+  0%{background-position:0% 0%,100% 0%,100% 100%,0% 100%,center}
+  50%{background-position:30% 22%,72% 30%,62% 72%,40% 45%,center}
+  100%{background-position:8% 36%,85% 12%,80% 85%,15% 62%,center}
+}
+@keyframes ztGridDrift{from{background-position:0 0}to{background-position:54px 54px}}
+@keyframes ztGlowFloat{from{transform:translate3d(0,-2%,0) scale(.9);opacity:.55}to{transform:translate3d(-18%,9%,0) scale(1.12);opacity:1}}
+@keyframes ztRingBreath{from{transform:translateY(0) scale(.96);opacity:.6}to{transform:translateY(28px) scale(1.04);opacity:1}}
+@media(prefers-reduced-motion:reduce){
+ body{animation:none;background-position:center}
+ body::before,body::after,.welcome-panel::before{animation:none}
+ .quick-card,.staff-panel,.module-card,.module-item{transition:none}
+ .quick-card:hover,.module-card:hover{transform:none}
+}
