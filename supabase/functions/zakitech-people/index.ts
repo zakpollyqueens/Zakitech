@@ -172,9 +172,13 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{message:"Conversation marked as read."});
   }
   if(action==="meetings-bootstrap"){
-   const {data:meetings,error}=await db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles(username,display_name))").order("starts_at",{ascending:true}).limit(200);
+   const isAdmin=adminRoles.includes(actor.role);
+   const {data:boardMember}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();
+   let q=db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles(username,display_name))").order("starts_at",{ascending:true}).limit(200);
+   if(!isAdmin)q=q.in("audience",boardMember?["all_staff","board"]:["all_staff"]);
+   const {data:meetings,error}=await q;
    if(error)throw Error("Could not load company meetings.");
-   return reply(200,{meetings:meetings||[],staff:adminRoles.includes(actor.role)?(await db.from("zt_profiles").select("user_id,username,display_name,status").eq("status","active").order("display_name")).data||[]:[]});
+   return reply(200,{meetings:meetings||[],staff:isAdmin?(await db.from("zt_profiles").select("user_id,username,display_name,status").eq("status","active").order("display_name")).data||[]:[]});
   }
   if(action==="create-meeting"){
    requireAdmin();
@@ -191,6 +195,8 @@ Deno.serve(async(req:Request)=>{
    if(!["attending","maybe","declined"].includes(response))return reply(400,{error:"Choose attending, maybe, or declined."});
    const {data:meeting,error:me}=await db.from("zt_meetings").select("id,status,audience").eq("id",id).maybeSingle();
    if(me||!meeting||meeting.status==="cancelled")return reply(404,{error:"Meeting not found or cancelled."});
+   if(meeting.audience==="admins"&&!adminRoles.includes(actor.role))return reply(403,{error:"This meeting is restricted to administrators."});
+   if(meeting.audience==="board"&&!adminRoles.includes(actor.role)){const {data:bm}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();if(!bm)return reply(403,{error:"This meeting is restricted to board members."})}
    const {error}=await db.from("zt_meeting_rsvps").upsert({meeting_id:id,user_id:uid,response,updated_at:new Date().toISOString()},{onConflict:"meeting_id,user_id"});
    if(error)throw Error("Could not save your RSVP.");
    return reply(200,{message:"Meeting response saved."});
@@ -236,7 +242,7 @@ Deno.serve(async(req:Request)=>{
    const status=isBoardAdmin&&b.status==="published"?"published":"draft";
    const record={title,body,item_type:kind,status,created_by:uid,updated_at:new Date().toISOString(),document_url:clean(b.document_url,500)||null};
    let result;
-   if(id){const {data,error}=await db.from("zt_board_items").update(record).eq("id",id).select("*").single();if(error)throw Error("Could not update board record.");result=data}
+   if(id){let update=db.from("zt_board_items").update(record).eq("id",id);if(!isBoardAdmin)update=update.eq("created_by",uid).eq("status","draft");const {data,error}=await update.select("*").maybeSingle();if(error||!data)throw Error("Could not update board record. Board members may only edit their own drafts.");result=data}
    else{const {data,error}=await db.from("zt_board_items").insert(record).select("*").single();if(error)throw Error("Could not save board record.");result=data}
    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"board_item_saved",details:{item_id:result.id,item_type:kind,status}});
    return reply(200,{message:status==="published"?"Board item published.":"Board item saved as a draft for administrator review.",item:result});
