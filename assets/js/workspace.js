@@ -39,6 +39,7 @@ async function loadProfile(){
  document.getElementById("profileDisplayName").value=p.display_name||"";
  document.getElementById("profilePhone").value=p.phone||"";
  document.getElementById("profileUsername").value=p.username||"";
+ const usernameInput=document.getElementById("profileUsername");usernameInput.readOnly=!(["owner","vice_admin"].includes(p.role));document.getElementById("usernameHelp").textContent=usernameInput.readOnly?"Your login username is managed by the CEO or an authorized administrator.":"You can change your login username here. Use 3–32 letters, numbers, dots, underscores or hyphens.";
  document.getElementById("newEmail").value=p.email||user.email||"";
  setAvatar(await signedAvatar(p.avatar_path),p.display_name);
  say("Secure session verified.","good");
@@ -80,7 +81,8 @@ async function loadStaff(){
    const role=document.createElement("span");role.className="staff-role";role.textContent=roleName(p.role);
    const status=document.createElement("span");status.className="status-pill"+(p.status==="suspended"?" suspended":"");status.textContent=p.status;
    meta.append(role,status);
-   if(p.role!=="owner"&&p.user_id!==profile.user_id&&!(p.role==="vice_admin"&&profile.role!=="owner")){
+   if((profile.role==="owner"&&p.user_id!==profile.user_id)||(profile.role==="vice_admin"&&p.role!=="owner"&&p.user_id!==profile.user_id)){
+    const editUsername=document.createElement("button");editUsername.type="button";editUsername.className="small-action";editUsername.textContent="Edit username";editUsername.addEventListener("click",async()=>{const next=window.prompt("Set a new login username for "+(p.display_name||p.username)+":",p.username);if(next===null)return;editUsername.disabled=true;try{const result=await adminCall({action:"update-username",user_id:p.user_id,username:next});say(result.message||"Username updated. The new username can be used at the next sign-in.","good");await loadStaff();await renderDirectory()}catch(err){say(err.message||"Could not update username.","error");editUsername.disabled=false}});meta.append(editUsername);
     const btn=document.createElement("button");btn.type="button";btn.className="small-action";btn.textContent=p.status==="suspended"?"Reactivate":"Suspend";
     btn.addEventListener("click",async()=>{btn.disabled=true;try{await adminCall({action:"set-status",user_id:p.user_id,status:p.status==="suspended"?"active":"suspended"});say("Staff account updated.","good");await loadStaff();await renderDirectory()}catch(e){say(e.message,"error");btn.disabled=false}});
     meta.append(btn);
@@ -102,9 +104,11 @@ profileForm.addEventListener("submit",async e=>{
    if(error)throw error;
    newPath=uploadedPath;
   }
-  const result=await adminCall({action:"update-profile",display_name:document.getElementById("profileDisplayName").value,phone:document.getElementById("profilePhone").value,avatar_path:newPath||""});
-  profile.display_name=document.getElementById("profileDisplayName").value.trim();profile.phone=document.getElementById("profilePhone").value.trim();profile.avatar_path=newPath;removeAvatarRequested=false;
+  const profilePayload={action:"update-profile",display_name:document.getElementById("profileDisplayName").value,phone:document.getElementById("profilePhone").value,avatar_path:newPath||""};if(["owner","vice_admin"].includes(profile.role))profilePayload.username=document.getElementById("profileUsername").value.trim();
+  const result=await adminCall(profilePayload);
+  profile.display_name=document.getElementById("profileDisplayName").value.trim();profile.phone=document.getElementById("profilePhone").value.trim();if(profilePayload.username)profile.username=profilePayload.username.toLowerCase();profile.avatar_path=newPath;removeAvatarRequested=false;
   document.getElementById("displayName").textContent=profile.display_name;
+  document.getElementById("welcomeCopy").textContent="Signed in as "+profile.username+". Your access is managed by your company role.";
   selectedAvatar=null;avatarFile.value="";
   setAvatar(await signedAvatar(profile.avatar_path),profile.display_name);
   fieldSay(profileMessage,result.message||"Profile saved.","good");say("Your profile has been updated.","good");
