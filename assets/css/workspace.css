@@ -39,3 +39,5 @@
 .access-chip{white-space:nowrap}
 .module-card .tile-icon{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:13px;background:rgba(104,226,245,.11);color:var(--cyan);font-size:1.25rem}
 @media(max-width:680px){.module-form{grid-template-columns:minmax(0,1fr);padding:15px}.module-form label,.module-form label:has(textarea),.module-form label:has(input[type=file]){grid-column:1}.module-card,.module-item{padding:16px}.section-heading{align-items:flex-start;gap:12px;flex-wrap:wrap}.access-chip{white-space:normal}}
+
+.task-sender{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:.82rem;margin-bottom:12px}.task-sender-avatar{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;object-fit:cover;border-radius:50%;background:rgba(104,226,245,.13);color:var(--cyan);font-weight:800;border:1px solid var(--line)}
