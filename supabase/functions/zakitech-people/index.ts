@@ -239,8 +239,9 @@ Deno.serve(async(req:Request)=>{
    if(!isBoardAdmin&&!membership)return reply(403,{error:"Board access is required."});
    const id=clean(b.id,80),title=clean(b.title,180),body=clean(b.body,8000),kind=clean(b.item_type,30)||"update";
    if(title.length<2||body.length<2||!["update","agenda","resolution","minutes","document"].includes(kind))return reply(400,{error:"Provide a title, content, and valid board item type."});
+   const documentUrl=clean(b.document_url,500)||null;if(documentUrl){let parsed;try{parsed=new URL(documentUrl)}catch{return reply(400,{error:"Document link must be a valid HTTPS URL."})}if(parsed.protocol!=="https:")return reply(400,{error:"Document link must use HTTPS."})}
    const status=isBoardAdmin&&b.status==="published"?"published":"draft";
-   const record={title,body,item_type:kind,status,created_by:uid,updated_at:new Date().toISOString(),document_url:clean(b.document_url,500)||null};
+   const record={title,body,item_type:kind,status,created_by:uid,updated_at:new Date().toISOString(),document_url:documentUrl};
    let result;
    if(id){let update=db.from("zt_board_items").update(record).eq("id",id);if(!isBoardAdmin)update=update.eq("created_by",uid).eq("status","draft");const {data,error}=await update.select("*").maybeSingle();if(error||!data)throw Error("Could not update board record. Board members may only edit their own drafts.");result=data}
    else{const {data,error}=await db.from("zt_board_items").insert(record).select("*").single();if(error)throw Error("Could not save board record.");result=data}
