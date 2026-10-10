@@ -408,3 +408,22 @@ body::before{opacity:.13;background-image:linear-gradient(rgba(181,195,229,.07) 
 .analytics-widget:nth-child(4) .analytics-bar-fill{background:linear-gradient(90deg,#ffb86b,#ff8fa3)}
 @media(max-width:1000px){.analytics-chart-layout{grid-template-columns:minmax(100px,.8fr) minmax(110px,1fr);gap:14px}.analytics-donut{max-width:155px}}
 @media(max-width:520px){.analytics-chart-layout{grid-template-columns:115px minmax(0,1fr);gap:12px;min-height:145px}.analytics-donut{width:112px}.analytics-donut-center strong{font-size:1.35rem}.analytics-legend-list{gap:10px}.analytics-legend-name{font-size:.69rem}.analytics-legend-count{font-size:.73rem}.analytics-widget{padding:15px}}
+
+
+/* Animated multi-colour interaction system — restrained glow, clear focus, accessible motion */
+:root{--zt-accent-violet:#b59aff;--zt-accent-blue:#7aa7ff;--zt-accent-green:#73e0b2;--zt-accent-amber:#ffb86b;--zt-accent-rose:#ff8fa3}
+@keyframes zt-gradient-drift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.primary-button,.outline-button,.small-action,.banner-button,.widget-link,.pipeline-button,.file-button,.text-button,.page-button,.page-link-button,.page-logout,.page-secondary-link,.staff-chat-send,.staff-chat-refresh{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background-color .22s ease,color .22s ease}
+.primary-button,.banner-button,.pipeline-button,.staff-chat-send{background-size:180% 180%;animation:zt-gradient-drift 7s ease infinite}
+.primary-button:hover,.banner-button:hover,.pipeline-button:hover,.staff-chat-send:hover{transform:translateY(-2px);box-shadow:0 10px 27px rgba(181,154,255,.18)}
+.outline-button:hover,.small-action:hover,.page-button:hover,.page-link-button:hover,.page-logout:hover,.page-secondary-link:hover,.staff-chat-refresh:hover{transform:translateY(-1px);box-shadow:0 7px 19px rgba(122,167,255,.12)}
+.dashboard-widget,.analytics-widget,.metric-card,.quick-card,.staff-panel,.module-card,.module-item,.page-card{transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
+.dashboard-widget:hover,.analytics-widget:hover,.page-card:hover{border-color:rgba(181,154,255,.25);box-shadow:0 16px 36px rgba(0,0,0,.17)}
+.dashboard-analytics-grid .analytics-widget:nth-child(4n+1),.page-grid>.page-card:nth-child(4n+1){--section-accent:#b59aff}
+.dashboard-analytics-grid .analytics-widget:nth-child(4n+2),.page-grid>.page-card:nth-child(4n+2){--section-accent:#73e0b2}
+.dashboard-analytics-grid .analytics-widget:nth-child(4n+3),.page-grid>.page-card:nth-child(4n+3){--section-accent:#ffb86b}
+.dashboard-analytics-grid .analytics-widget:nth-child(4n+4),.page-grid>.page-card:nth-child(4n+4){--section-accent:#7aa7ff}
+.dashboard-analytics-grid .analytics-widget,.page-grid>.page-card{border-top:2px solid color-mix(in srgb,var(--section-accent,#b59aff) 55%,transparent)}
+.workspace-main select,.workspace-main input,.workspace-main textarea,.page-form select,.page-form input,.page-form textarea{accent-color:#b59aff}
+.workspace-main select:focus,.page-form select:focus{box-shadow:0 0 0 3px rgba(181,154,255,.10)}
+@media(prefers-reduced-motion:reduce){.primary-button,.banner-button,.pipeline-button,.staff-chat-send{animation:none;background-position:50% 50%}.primary-button,.outline-button,.small-action,.banner-button,.widget-link,.pipeline-button,.file-button,.text-button,.page-button,.page-link-button,.page-logout,.page-secondary-link,.staff-chat-send,.staff-chat-refresh,.dashboard-widget,.analytics-widget,.metric-card,.quick-card,.staff-panel,.module-card,.module-item,.page-card{transition:none}.dashboard-widget:hover,.analytics-widget:hover,.page-card:hover,.primary-button:hover,.banner-button:hover,.pipeline-button:hover,.staff-chat-send:hover,.outline-button:hover,.small-action:hover,.page-button:hover,.page-link-button:hover,.page-logout:hover,.page-secondary-link:hover,.staff-chat-refresh:hover{transform:none}}
