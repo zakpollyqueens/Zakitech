@@ -30,7 +30,7 @@ Deno.serve(async(req:Request)=>{
   if(byName||byEmail)return reply(409,{error:"That username or email is already assigned."});
   const {data:invite,error:ie}=await admin.auth.admin.inviteUserByEmail(email,{data:{display_name:display,username}});
   if(ie||!invite.user)return reply(400,{error:ie?.message||"Could not send the account invitation."});
-  const {error:pe}=await admin.from("zt_profiles").insert({user_id:invite.user.id,username,email,display_name:display,role,status:"active",must_change_password:true,created_by:ud.user.id});
+  const {error:pe}=await admin.from("zt_profiles").insert({user_id:invite.user.id,username,email,display_name:display,role,status:"active",must_change_password:false,created_by:ud.user.id});
   if(pe){await admin.auth.admin.deleteUser(invite.user.id);return reply(500,{error:"The account could not be saved. No staff account was created."})}
   await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,target_user_id:invite.user.id,event_type:"staff_created",details:{username,role}});
   return reply(201,{message:"Invitation sent. The staff member must use the email invitation to set their password.",username});
