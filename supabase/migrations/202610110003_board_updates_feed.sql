@@ -1,0 +1,1 @@
+alter table public.zt_board_items add column if not exists staff_visible boolean not null default false;
