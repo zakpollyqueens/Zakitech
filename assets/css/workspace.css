@@ -453,3 +453,24 @@ body::before{opacity:.13;background-image:linear-gradient(rgba(181,195,229,.07) 
 .workspace-main .metric-card:hover,.workspace-main .analytics-widget:hover,.workspace-main .dashboard-widget:hover,.workspace-main .page-card:hover{transform:translateY(-3px);border-color:rgba(181,154,255,.29);box-shadow:0 18px 42px rgba(0,0,0,.20)}
 @media(prefers-reduced-motion:reduce){.workspace-shell:before,.workspace-shell:after,.workspace-main:before,.page-shell:before,.page-shell:after,.workspace-main .dashboard-widget,.workspace-main .analytics-widget,.workspace-main .metric-card,.workspace-main .quick-card,.workspace-main .staff-panel,.workspace-main .module-card,.workspace-main .module-item,.workspace-main .page-card,.page-shell .page-card,.page-shell .panel,.page-shell .card,.page-shell .section-card,.workspace-main .primary-button,.workspace-main .banner-button,.workspace-main .pipeline-button,.workspace-main .staff-chat-send{animation:none!important}.workspace-main button,.page-shell button,.workspace-main .metric-card,.workspace-main .analytics-widget,.workspace-main .dashboard-widget,.workspace-main .page-card{transition:none!important}.workspace-main .metric-card:hover,.workspace-main .analytics-widget:hover,.workspace-main .dashboard-widget:hover,.workspace-main .page-card:hover{transform:none}}
 @media(max-width:720px){.workspace-main .dashboard-widget,.workspace-main .analytics-widget,.workspace-main .metric-card,.workspace-main .page-card,.page-shell .page-card,.page-shell .panel{backdrop-filter:blur(12px) saturate(125%);-webkit-backdrop-filter:blur(12px) saturate(125%)}}
+
+
+/* Stability hotfix: stop continuous GPU-heavy motion that can flicker on mobile browsers.
+   Keep the layered colors and glass styling, but make the workspace visually stable. */
+body{
+  animation:none!important;
+  background-attachment:scroll!important;
+}
+body::before,
+body::after,
+.workspace-main::before,
+.workspace-main::after,
+.welcome-panel::before{
+  animation:none!important;
+  will-change:auto!important;
+}
+body *,
+body *::before,
+body *::after{
+  animation:none!important;
+}
