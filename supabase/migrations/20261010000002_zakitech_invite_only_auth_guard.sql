@@ -1,19 +1,6 @@
--- Prevent public self-registration. Auth users must be created through an invitation.
-create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
-create or replace function private.enforce_zakitech_invite_only()
-returns trigger language plpgsql security definer set search_path = ''
-as $$
-begin
-  if new.invited_at is null then
-    raise exception 'ZakiTech accounts are invitation-only. Contact an authorized administrator.'
-      using errcode = '42501';
-  end if;
-  return new;
-end;
-$$;
-revoke all on function private.enforce_zakitech_invite_only() from public, anon, authenticated;
-drop trigger if exists zt_invite_only_auth_users on auth.users;
-create trigger zt_invite_only_auth_users
-before insert on auth.users
-for each row execute function private.enforce_zakitech_invite_only();
+-- Invitation-only policy note.
+-- Do not install a BEFORE INSERT trigger on auth.users that checks invited_at:
+-- Supabase's invite flow may populate invited_at after the initial insert, so
+-- that trigger can reject legitimate administrator invitations.
+-- Disable public signups in Supabase Dashboard > Authentication > Sign In / Providers
+-- (wording can vary) and create staff only through the protected admin workflow.
