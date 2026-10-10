@@ -8,6 +8,8 @@
   <title>Welcome to ZakiTech</title>
   <link rel="icon" href="assets/images/zakitech-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js" defer></script>
+  <script src="assets/js/supabase-config.js" defer></script>
   <script src="assets/js/app.js" defer></script>
 </head>
 <body>
@@ -80,14 +82,14 @@
             </div>
             <p class="eyebrow">GOOD TO HAVE YOU HERE</p>
             <h1 id="signinTitle">Sign in</h1>
-            <p class="card-subtitle">Enter your details to continue to ZakiTech.</p>
+            <p class="card-subtitle">Use the account details provided by your ZakiTech administrator.</p>
           </div>
 
           <form id="signinForm" novalidate>
             <label for="username">Username or email</label>
             <div class="input-wrap">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20v-2a7 7 0 0 1 14 0v2z"/></svg>
-              <input id="username" name="username" type="text" placeholder="Enter your username or email" autocomplete="username" required>
+              <input id="username" name="username" type="text" placeholder="Enter your assigned username or email" autocomplete="username" required>
             </div>
 
             <div class="password-label-row"><label for="password">Password</label><a href="#" id="forgotPassword">Forgot password?</a></div>
@@ -102,8 +104,7 @@
             <button class="submit-button" id="signInButton" type="submit"><span>Sign in to ZakiTech</span><span aria-hidden="true">→</span></button>
           </form>
 
-          <div class="form-divider"><span></span><small>NEW TO ZAKITECH?</small><span></span></div>
-          <button class="create-account-button" id="createAccount" type="button">Create an account <span aria-hidden="true">↗</span></button>
+          <p class="account-access-note">ZakiTech is a private company workspace. Accounts are created by an authorized administrator.</p>
           <p class="card-footnote">By continuing, you agree to use your workspace responsibly.</p>
         </div>
       </div>
