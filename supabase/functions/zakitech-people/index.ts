@@ -201,6 +201,11 @@ Deno.serve(async(req:Request)=>{
    if(error)throw Error("Could not save your RSVP.");
    return reply(200,{message:"Meeting response saved."});
   }
+  if(action==="updates-feed"){
+   const {data:items,error}=await db.from("zt_board_items").select("id,title,body,item_type,document_url,created_at,updated_at,creator:zt_profiles!zt_board_items_created_by_fkey(username,display_name)").eq("status","published").eq("staff_visible",true).order("created_at",{ascending:false}).limit(100);
+   if(error)throw Error("Could not load company updates.");
+   return reply(200,{updates:items||[]});
+  }
   if(action==="board-bootstrap"){
    const isBoardAdmin=adminRoles.includes(actor.role);
    const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,created_at,profile:zt_profiles(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
@@ -241,7 +246,7 @@ Deno.serve(async(req:Request)=>{
    if(title.length<2||body.length<2||!["update","agenda","resolution","minutes","document"].includes(kind))return reply(400,{error:"Provide a title, content, and valid board item type."});
    const documentUrl=clean(b.document_url,500)||null;if(documentUrl){let parsed;try{parsed=new URL(documentUrl)}catch{return reply(400,{error:"Document link must be a valid HTTPS URL."})}if(parsed.protocol!=="https:")return reply(400,{error:"Document link must use HTTPS."})}
    const status=isBoardAdmin&&b.status==="published"?"published":"draft";
-   const record={title,body,item_type:kind,status,created_by:uid,updated_at:new Date().toISOString(),document_url:documentUrl};
+   const record={title,body,item_type:kind,status,created_by:uid,updated_at:new Date().toISOString(),document_url:documentUrl,staff_visible:isBoardAdmin&&status==="published"&&kind==="update"&&b.share_with_staff===true};
    let result;
    if(id){let update=db.from("zt_board_items").update(record).eq("id",id);if(!isBoardAdmin)update=update.eq("created_by",uid).eq("status","draft");const {data,error}=await update.select("*").maybeSingle();if(error||!data)throw Error("Could not update board record. Board members may only edit their own drafts.");result=data}
    else{const {data,error}=await db.from("zt_board_items").insert(record).select("*").single();if(error)throw Error("Could not save board record.");result=data}
