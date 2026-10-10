@@ -59,6 +59,28 @@ function renderDashboard(){
  items.sort((a,b)=>b.date-a.date);
  if(!items.length)activity.append(node("div","dashboard-empty","Recent announcements, tasks, and product activity will appear here."));
  items.slice(0,4).forEach(item=>{const row=node("div","activity-row"),icon=node("span","activity-icon",item.icon),copy=node("div","activity-copy");copy.append(node("strong","",item.title),node("small","",item.detail));row.append(icon,copy);activity.append(row)});
+ const team=$( "dashboardTeam" );team.replaceChildren();
+ const members=state.staff.slice(0,5);
+ if(!members.length){team.append(node("div","dashboard-empty",state.profile?"Team directory details will appear here when available.":"Team information is not available for this account."))}
+ members.forEach(p=>{
+  const row=node("div","dashboard-team-row"),avatar=node("span","dashboard-team-avatar");
+  const initials=String(p.display_name||p.username||"ZT").trim().split(/\\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase();
+  if(p.avatar_url){const img=node("img");img.src=p.avatar_url;img.alt="";img.loading="lazy";img.onerror=()=>{avatar.textContent=initials};avatar.append(img)}else avatar.textContent=initials||"ZT";
+  const copy=node("div","dashboard-team-copy");copy.append(node("strong","",p.display_name||p.username||"Team member"),node("small","",p.username?"@"+p.username:"ZakiTech team"));
+  const role=node("span","dashboard-team-role",String(p.role||"staff").replaceAll("_"," "));
+  row.append(avatar,copy,role);team.append(row);
+ });
+ if(state.staff.length>5)team.append(node("div","module-meta","+"+(state.staff.length-5)+" more team members"));
+ const messageBox=$( "dashboardMessages" );messageBox.replaceChildren();
+ const canSeeMessages=admin()||assigned("support_inbox");
+ const recentMessages=canSeeMessages?state.messages.slice(0,4):[];
+ if(!canSeeMessages){messageBox.append(node("div","dashboard-empty","Your account does not have the product inbox assignment."))}
+ else if(!recentMessages.length){messageBox.append(node("div","dashboard-empty","Recent product messages will appear here when received."))}
+ recentMessages.forEach(msg=>{
+  const row=node("div","dashboard-message-row"),icon=node("span","dashboard-message-icon","✉"),copy=node("div","dashboard-message-copy");
+  copy.append(node("strong","",msg.subject||"Product message"),node("small","",(msg.sender_name||"Sender")+" · "+(msg.product?.name||productName(msg.product_id))+" · "+safeDate(msg.received_at)));
+  row.append(icon,copy,node("span","dashboard-message-status",String(msg.status||"new").replaceAll("_"," ")));messageBox.append(row);
+ });
 }
 function refreshSelects(){const products=productOptions();fillSelect($("workstationProduct"),products,"Choose product");fillSelect($("taskProduct"),products,"No product (company-wide)");fillSelect($("buildProduct"),assignedProducts("product_development"),"Choose assigned product");fillSelect($("notificationProduct"),products,"Company-wide / no product");fillSelect($("messageProduct"),products,"Choose product")}
 function setAccessUi(){const dev=assigned("product_development"),notif=assigned("notifications"),ann=assigned("announcements"),inbox=assigned("support_inbox");$("navNotifications").hidden=false;$("navDevelopment").hidden=!dev;const pipelineButton=document.querySelector(".pipeline-button");if(pipelineButton)pipelineButton.hidden=!dev;$("navReleases").hidden=!admin();$("navInbox").hidden=!inbox;$("productEditorWrap").hidden=!admin();$("taskEditorWrap").hidden=!admin();$("announcementEditorWrap").hidden=!ann;$("notificationEditorWrap").hidden=!notif;$("announcementAccess").textContent=ann?"ANNOUNCEMENT MANAGER":"READ ACCESS";$("notificationAccess").textContent=notif?"NOTIFICATION MANAGER":"READ ACCESS";$("manualMessageForm").hidden=!inbox; if(admin()){const wrap=$("workstationProductWrap");wrap.hidden=false;$("workstationProduct").required=true}else{$("workstationForm").hidden=true;$("workstationAssignments").hidden=true}}
