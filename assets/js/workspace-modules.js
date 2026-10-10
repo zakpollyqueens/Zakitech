@@ -72,11 +72,19 @@ function renderDashboard(){
  put("metricTaskNote",openTasks.filter(t=>t.status==="in_progress").length+" in progress · "+openTasks.filter(t=>t.status==="submitted").length+" submitted");
  put("metricBuildNote",pendingBuilds.filter(b=>b.status==="approved").length+" approved · awaiting publication");
  put("bannerProductCount",String(state.products.length).padStart(2,"0"));
- const drawBars=(id,rows)=>{
-  const box=$(id);if(!box)return;box.replaceChildren();
-  const max=Math.max(1,...rows.map(r=>r.value));
-  if(!rows.some(r=>r.value)){box.append(node("div","analytics-empty","No records yet. Your live chart will update as company activity grows."));return}
-  rows.forEach(r=>{const row=node("div","analytics-bar-row"),label=node("span","analytics-bar-label",r.label),track=node("div","analytics-bar-track"),fill=node("div","analytics-bar-fill"),value=node("span","analytics-bar-value",r.value);fill.style.width=(r.value/max*100)+"%";fill.setAttribute("role","img");fill.setAttribute("aria-label",r.label+": "+r.value);track.append(fill);row.append(label,track,value);box.append(row)});
+ const palette=["#b59aff","#ffb86b","#73e0b2","#7aa7ff","#ff8fa3","#d6a6ff"];
+ const drawDonut=(chartId,totalId,legendId,rows)=>{
+  const chart=$(chartId),totalEl=$(totalId),legend=$(legendId);if(!chart||!totalEl||!legend)return;
+  const total=rows.reduce((sum,r)=>sum+r.value,0);totalEl.textContent=String(total);legend.replaceChildren();
+  if(!total){chart.style.background="conic-gradient(rgba(181,195,229,.12) 0deg 360deg)";legend.append(node("div","analytics-empty","No records yet. This chart will update as company activity grows."));return}
+  let angle=0;const segments=[];
+  rows.forEach((r,i)=>{const span=r.value/total*360;segments.push(palette[i%palette.length]+" "+angle+"deg "+(angle+span)+"deg");angle+=span;const row=node("div","analytics-legend-row"),swatch=node("span","analytics-legend-swatch");swatch.style.background=palette[i%palette.length];const label=node("span","analytics-legend-name",r.label),value=node("strong","analytics-legend-count",String(r.value));row.append(swatch,label,value);legend.append(row)});
+  chart.style.background="conic-gradient("+segments.join(",")+")";
+ };
+ const drawBars=(id,rows,emptyText="No records yet. Charts update as activity is recorded.")=>{
+  const box=$(id);if(!box)return;box.replaceChildren();const max=Math.max(1,...rows.map(r=>r.value));
+  if(!rows.length||!rows.some(r=>r.value)){box.append(node("div","analytics-empty",emptyText));return}
+  rows.forEach((r,i)=>{const row=node("div","analytics-bar-row"),label=node("span","analytics-bar-label",r.label),track=node("div","analytics-bar-track"),fill=node("div","analytics-bar-fill"),value=node("span","analytics-bar-value",r.value);fill.style.width=(r.value/max*100)+"%";fill.style.background=palette[i%palette.length];fill.setAttribute("role","img");fill.setAttribute("aria-label",r.label+": "+r.value);track.append(fill);row.append(label,track,value);box.append(row)});
  };
  const lifecycle=[
   {label:"Planned",value:state.products.filter(p=>String(p.status||"").toLowerCase()==="planned").length},
@@ -85,12 +93,19 @@ function renderDashboard(){
   {label:"Other stages",value:state.products.filter(p=>!["planned","in_development","launched","published"].includes(String(p.status||"").toLowerCase())).length}
  ];
  const taskStages=[
-  {label:"Assigned",value:state.tasks.filter(t=>["assigned","open"].includes(String(t.status||"").toLowerCase())).length},
+  {label:"Assigned / open",value:state.tasks.filter(t=>["assigned","open"].includes(String(t.status||"").toLowerCase())).length},
   {label:"In progress",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="in_progress").length},
   {label:"Submitted",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="submitted").length},
-  {label:"Completed",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="completed").length}
+  {label:"Completed",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="completed").length},
+  {label:"Cancelled",value:state.tasks.filter(t=>String(t.status||"").toLowerCase()==="cancelled").length}
  ];
- drawBars("portfolioAnalytics",lifecycle);drawBars("taskAnalytics",taskStages);
+ drawDonut("portfolioDonut","portfolioTotal","portfolioAnalytics",lifecycle);drawDonut("taskDonut","taskTotal","taskAnalytics",taskStages);
+ const chartOpenTasks=state.tasks.filter(t=>!["completed","cancelled"].includes(String(t.status||"").toLowerCase()));
+ const workload=state.staff.map(person=>({label:person.display_name||person.username||"Staff member",value:chartOpenTasks.filter(t=>t.assigned_to===person.user_id).length})).filter(row=>row.value>0).sort((a,b)=>b.value-a.value).slice(0,6);
+ drawBars("staffAnalytics",workload,"No open staff assignments are recorded yet.");
+ const activityDays=Array.from({length:7},(_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(6-i));return d});
+ const activityRows=activityDays.map(day=>{const next=new Date(day);next.setDate(next.getDate()+1);const inRange=v=>{if(!v)return false;const d=new Date(v);return !Number.isNaN(d.getTime())&&d>=day&&d<next};const tasks=state.tasks.filter(t=>inRange(t.created_at)||inRange(t.updated_at)).length;const builds=state.builds.filter(b=>inRange(b.submitted_at)||inRange(b.created_at)).length;return {label:day.toLocaleDateString(undefined,{weekday:"short"}),value:tasks+builds}});
+ drawBars("activityAnalytics",activityRows,"No tasks or builds recorded in the last 7 days.");
 
  const projects=$("dashboardProjects");projects.replaceChildren();
  if(!state.products.length){projects.append(node("div","dashboard-empty","No products have been added yet."))}
