@@ -316,3 +316,25 @@ body::after{
  .dashboard-message-status{grid-column:2;justify-self:start}
  .dashboard-team-avatar{width:35px;height:35px}
 }
+
+
+/* Design D — development release board */
+.board-helper{margin:-8px 0 16px;color:var(--zt-muted);font-size:.82rem;line-height:1.6}
+#developmentBuildList{display:block}
+.build-board{display:grid;grid-template-columns:repeat(4,minmax(235px,1fr));gap:13px;align-items:start;overflow-x:auto;padding:2px 2px 12px}
+.build-board-column{min-width:0;min-height:245px;padding:12px;border:1px solid var(--zt-border);border-radius:15px;background:rgba(5,17,32,.5)}
+.build-board-heading{display:flex;align-items:flex-start;gap:9px;padding:5px 4px 13px;border-bottom:1px solid rgba(150,190,225,.1)}
+.build-board-stage-dot{width:9px;height:9px;flex:none;margin-top:5px;border-radius:50%;background:#a58bff;box-shadow:0 0 12px rgba(165,139,255,.25)}
+.build-stage-approved .build-board-stage-dot{background:#6de5bc;box-shadow:0 0 12px rgba(109,229,188,.25)}
+.build-stage-published .build-board-stage-dot{background:#63e5f4;box-shadow:0 0 12px rgba(99,229,244,.25)}
+.build-stage-rejected .build-board-stage-dot{background:#ff9ca7;box-shadow:0 0 12px rgba(255,156,167,.25)}
+.build-board-heading-copy{min-width:0}
+.build-board-heading-copy strong{display:block;font-size:.78rem}
+.build-board-heading-copy small{display:block;margin-top:4px;color:var(--zt-muted);font-size:.62rem;line-height:1.45}
+.build-board-cards{display:grid;gap:10px;padding-top:11px}
+.build-board-cards .module-item{padding:13px;border-radius:12px;background:linear-gradient(145deg,rgba(17,36,60,.96),rgba(7,19,35,.98));box-shadow:none}
+.build-board-cards .module-item h3{font-size:.88rem;line-height:1.4}
+.build-board-cards .module-item p{font-size:.76rem}
+.build-board-empty{padding:13px 9px;color:#6f87a0;font-size:.69rem;line-height:1.5;border:1px dashed rgba(150,190,225,.1);border-radius:10px;text-align:center}
+@media(max-width:1050px){.build-board{grid-template-columns:repeat(4,minmax(245px,1fr))}}
+@media(max-width:600px){.build-board{grid-template-columns:repeat(4,minmax(260px,1fr));margin-right:-3px}}
