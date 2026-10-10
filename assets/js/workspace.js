@@ -5,7 +5,7 @@ const msg=document.getElementById("pageMessage"),section=document.getElementById
 const profileForm=document.getElementById("profileForm"),emailForm=document.getElementById("emailForm"),passwordForm=document.getElementById("passwordForm");
 const profileMessage=document.getElementById("profileMessage"),emailMessage=document.getElementById("emailMessage"),passwordMessage=document.getElementById("passwordMessage");
 const avatarFile=document.getElementById("avatarFile"),avatarPreview=document.getElementById("avatarPreview"),avatarFallback=document.getElementById("avatarFallback"),directoryList=document.getElementById("directoryList");
-let profile=null,currentUser=null,selectedAvatar=null;
+let profile=null,currentUser=null,selectedAvatar=null,removeAvatarRequested=false;
 document.getElementById("year").textContent=new Date().getFullYear();
 const say=(s,k="")=>{msg.textContent=s;msg.className="page-message "+k};
 const fieldSay=(el,s,k="")=>{el.textContent=s;el.className="inline-message "+k};
@@ -91,7 +91,7 @@ async function loadStaff(){
 }
 profileForm.addEventListener("submit",async e=>{
  e.preventDefault();fieldSay(profileMessage,"");const button=profileForm.querySelector('button[type="submit"]');button.disabled=true;button.textContent="Saving profile…";
- let newPath=profile.avatar_path||null,uploadedPath=null;
+ let newPath=removeAvatarRequested?null:(profile.avatar_path||null),uploadedPath=null;
  try{
   if(selectedAvatar){
    const ext=({"image/jpeg":"jpg","image/png":"png","image/webp":"webp"})[selectedAvatar.type];
@@ -103,7 +103,7 @@ profileForm.addEventListener("submit",async e=>{
    newPath=uploadedPath;
   }
   const result=await adminCall({action:"update-profile",display_name:document.getElementById("profileDisplayName").value,phone:document.getElementById("profilePhone").value,avatar_path:newPath||""});
-  profile.display_name=document.getElementById("profileDisplayName").value.trim();profile.phone=document.getElementById("profilePhone").value.trim();profile.avatar_path=newPath;
+  profile.display_name=document.getElementById("profileDisplayName").value.trim();profile.phone=document.getElementById("profilePhone").value.trim();profile.avatar_path=newPath;removeAvatarRequested=false;
   document.getElementById("displayName").textContent=profile.display_name;
   selectedAvatar=null;avatarFile.value="";
   setAvatar(await signedAvatar(profile.avatar_path),profile.display_name);
@@ -116,10 +116,9 @@ avatarFile.addEventListener("change",()=>{
  const file=avatarFile.files?.[0];if(!file)return;
  if(!["image/jpeg","image/png","image/webp"].includes(file.type)){fieldSay(profileMessage,"Choose a JPG, PNG or WebP image.","error");avatarFile.value="";return}
  if(file.size>2*1024*1024){fieldSay(profileMessage,"Your profile photo must be 2 MB or smaller.","error");avatarFile.value="";return}
- selectedAvatar=file;const reader=new FileReader();reader.onload=()=>setAvatar(String(reader.result),document.getElementById("profileDisplayName").value);reader.readAsDataURL(file);
+ selectedAvatar=file;removeAvatarRequested=false;const reader=new FileReader();reader.onload=()=>setAvatar(String(reader.result),document.getElementById("profileDisplayName").value);reader.readAsDataURL(file);
 });
-document.getElementById("removeAvatar").addEventListener("click",()=>{selectedAvatar=null;avatarFile.value="";setAvatar(null,document.getElementById("profileDisplayName").value);profileForm.dataset.removeAvatar="true"});
-profileForm.addEventListener("submit",()=>{if(profileForm.dataset.removeAvatar==="true"&&!selectedAvatar){profile.avatar_path=null;profileForm.dataset.removeAvatar="false"}});
+document.getElementById("removeAvatar").addEventListener("click",()=>{selectedAvatar=null;avatarFile.value="";removeAvatarRequested=true;setAvatar(null,document.getElementById("profileDisplayName").value)});
 async function reauthenticate(password){
  const email=currentUser?.email||profile?.email;
  if(!email)throw Error("Your account email could not be verified. Sign in again.");
