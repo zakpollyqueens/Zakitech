@@ -146,6 +146,101 @@ Deno.serve(async(req:Request)=>{
    await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:entry.staff_user_id,event_type:decision==="approve"?"payroll_entry_approved":"payroll_entry_marked_paid",details:{entry_id:id,period_id:entry.period_id,payment_reference:decision==="mark-paid"?reference:undefined}});
    return reply(200,{message:decision==="approve"?"Payroll entry approved.":"Payment marked paid and recorded."});
   }
+
+  if(action==="chat-bootstrap"){
+   const {data:staff,error:staffError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status").eq("status","active").order("display_name");
+   if(staffError)throw Error("Could not load the staff directory.");
+   const {data:threads,error:threadError}=await db.from("zt_staff_direct_messages").select("id,sender_user_id,recipient_user_id,body,created_at,read_at").or("sender_user_id.eq."+uid+",recipient_user_id.eq."+uid).order("created_at",{ascending:true}).limit(1000);
+   if(threadError)throw Error("Could not load private messages.");
+   return reply(200,{staff:staff||[],messages:threads||[]});
+  }
+  if(action==="send-direct-message"){
+   const target=clean(b.recipient_user_id,80),body=clean(b.body,4000);
+   if(!target||target===uid||body.length<1)return reply(400,{error:"Choose another staff member and enter a message."});
+   const {data:person,error:personError}=await db.from("zt_profiles").select("user_id,status").eq("user_id",target).maybeSingle();
+   if(personError||!person||person.status!=="active")return reply(404,{error:"Active recipient not found."});
+   const {data:message,error}=await db.from("zt_staff_direct_messages").insert({sender_user_id:uid,recipient_user_id:target,body}).select("id,sender_user_id,recipient_user_id,body,created_at,read_at").single();
+   if(error)throw Error("Could not send your message.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:target,event_type:"staff_direct_message_sent",details:{message_id:message.id}});
+   return reply(201,{message});
+  }
+  if(action==="mark-direct-read"){
+   const sender=clean(b.sender_user_id,80);
+   if(!sender)return reply(400,{error:"Sender is required."});
+   const {error}=await db.from("zt_staff_direct_messages").update({read_at:new Date().toISOString()}).eq("sender_user_id",sender).eq("recipient_user_id",uid).is("read_at",null);
+   if(error)throw Error("Could not update message read status.");
+   return reply(200,{message:"Conversation marked as read."});
+  }
+  if(action==="meetings-bootstrap"){
+   const {data:meetings,error}=await db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles(username,display_name))").order("starts_at",{ascending:true}).limit(200);
+   if(error)throw Error("Could not load company meetings.");
+   return reply(200,{meetings:meetings||[],staff:adminRoles.includes(actor.role)?(await db.from("zt_profiles").select("user_id,username,display_name,status").eq("status","active").order("display_name")).data||[]:[]});
+  }
+  if(action==="create-meeting"){
+   requireAdmin();
+   const title=clean(b.title,180),description=clean(b.description,3000),starts=clean(b.starts_at,80),ends=clean(b.ends_at,80),join=clean(b.join_url,500),provider=clean(b.provider,30)||"zoom",audience=clean(b.audience,30)||"all_staff";
+   if(title.length<2||!starts||!ends||new Date(starts).toString()==="Invalid Date"||new Date(ends).toString()==="Invalid Date"||new Date(ends)<=new Date(starts))return reply(400,{error:"Provide a title and valid start/end times."});
+   if(join){let parsed;try{parsed=new URL(join)}catch{return reply(400,{error:"Meeting link must be a valid HTTPS URL."})}if(parsed.protocol!=="https:"||!(parsed.hostname==="zoom.us"||parsed.hostname.endsWith(".zoom.us")||parsed.hostname==="meet.google.com"))return reply(400,{error:"Use a valid Zoom or Google Meet HTTPS link."})}
+   const {data:meeting,error}=await db.from("zt_meetings").insert({title,description,starts_at:new Date(starts).toISOString(),ends_at:new Date(ends).toISOString(),join_url:join||null,provider,audience,status:"scheduled",created_by:uid}).select("*").single();
+   if(error)throw Error("Could not schedule the meeting.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"company_meeting_scheduled",details:{meeting_id:meeting.id,title,provider}});
+   return reply(201,{message:"Meeting scheduled. Add a Zoom meeting link, or configure Zoom API credentials to enable automatic meeting creation.",meeting});
+  }
+  if(action==="meeting-rsvp"){
+   const id=clean(b.meeting_id,80),response=clean(b.response,20);
+   if(!["attending","maybe","declined"].includes(response))return reply(400,{error:"Choose attending, maybe, or declined."});
+   const {data:meeting,error:me}=await db.from("zt_meetings").select("id,status,audience").eq("id",id).maybeSingle();
+   if(me||!meeting||meeting.status==="cancelled")return reply(404,{error:"Meeting not found or cancelled."});
+   const {error}=await db.from("zt_meeting_rsvps").upsert({meeting_id:id,user_id:uid,response,updated_at:new Date().toISOString()},{onConflict:"meeting_id,user_id"});
+   if(error)throw Error("Could not save your RSVP.");
+   return reply(200,{message:"Meeting response saved."});
+  }
+  if(action==="board-bootstrap"){
+   const isBoardAdmin=adminRoles.includes(actor.role);
+   const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,created_at,profile:zt_profiles(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
+   if(membershipError)throw Error("Could not check board access.");
+   if(!isBoardAdmin&&!membership)return reply(403,{error:"The Governance Board is restricted to administrators and explicitly authorized board members."});
+   let q=db.from("zt_board_items").select("*,creator:zt_profiles!zt_board_items_created_by_fkey(username,display_name)").order("created_at",{ascending:false}).limit(200);
+   if(!isBoardAdmin)q=q.eq("status","published");
+   const {data:items,error}=await q;if(error)throw Error("Could not load board records.");
+   const members=isBoardAdmin?(await db.from("zt_board_members").select("id,user_id,board_title,created_at,profile:zt_profiles(username,display_name,role,status)").order("created_at",{ascending:false})).data||[]:[];
+   return reply(200,{items:items||[],members,is_admin:isBoardAdmin,is_board_member:!!membership});
+  }
+  if(action==="board-add-member"){
+   requireAdmin();
+   const username=clean(b.username,80).replace(/^@/,""),title=clean(b.board_title,100)||"Board Member";
+   if(!username)return reply(400,{error:"Enter a staff username."});
+   const {data:person,error:personError}=await db.from("zt_profiles").select("user_id,status").ilike("username",username).maybeSingle();
+   if(personError||!person||person.status!=="active")return reply(404,{error:"No active account found for that username."});
+   const {data:member,error}=await db.from("zt_board_members").upsert({user_id:person.user_id,board_title:title,added_by:uid},{onConflict:"user_id"}).select("*").single();
+   if(error)throw Error("Could not authorize board member.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:person.user_id,event_type:"board_member_authorized",details:{board_title:title}});
+   return reply(200,{message:"Board member access granted.",member});
+  }
+  if(action==="board-remove-member"){
+   requireAdmin();
+   const id=clean(b.id,80);
+   const {data:member,error:lookup}=await db.from("zt_board_members").select("id,user_id").eq("id",id).maybeSingle();
+   if(lookup||!member)return reply(404,{error:"Board member not found."});
+   const {error}=await db.from("zt_board_members").delete().eq("id",id);if(error)throw Error("Could not remove board access.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:member.user_id,event_type:"board_member_access_removed",details:{membership_id:id}});
+   return reply(200,{message:"Board access removed."});
+  }
+  if(action==="board-save-item"){
+   const isBoardAdmin=adminRoles.includes(actor.role);
+   const {data:membership,error:me}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();
+   if(me)throw Error("Could not verify board membership.");
+   if(!isBoardAdmin&&!membership)return reply(403,{error:"Board access is required."});
+   const id=clean(b.id,80),title=clean(b.title,180),body=clean(b.body,8000),kind=clean(b.item_type,30)||"update";
+   if(title.length<2||body.length<2||!["update","agenda","resolution","minutes","document"].includes(kind))return reply(400,{error:"Provide a title, content, and valid board item type."});
+   const status=isBoardAdmin&&b.status==="published"?"published":"draft";
+   const record={title,body,item_type:kind,status,created_by:uid,updated_at:new Date().toISOString(),document_url:clean(b.document_url,500)||null};
+   let result;
+   if(id){const {data,error}=await db.from("zt_board_items").update(record).eq("id",id).select("*").single();if(error)throw Error("Could not update board record.");result=data}
+   else{const {data,error}=await db.from("zt_board_items").insert(record).select("*").single();if(error)throw Error("Could not save board record.");result=data}
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"board_item_saved",details:{item_id:result.id,item_type:kind,status}});
+   return reply(200,{message:status==="published"?"Board item published.":"Board item saved as a draft for administrator review.",item:result});
+  }
   if(action==="my-payroll"){
    const {data:entries,error}=await db.from("zt_payroll_entries").select("*,period:zt_payroll_periods(title,starts_on,ends_on,pay_date,status)").eq("staff_user_id",uid).order("created_at",{ascending:false}).limit(100);
    if(error)throw Error("Could not load your payroll statements.");
