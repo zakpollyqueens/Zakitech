@@ -10,8 +10,8 @@ let profile=null,currentUser=null,selectedAvatar=null,removeAvatarRequested=fals
 document.getElementById("year").textContent=new Date().getFullYear();
 const say=(s,k="")=>{msg.textContent=s;msg.className="page-message "+k};
 const fieldSay=(el,s,k="")=>{el.textContent=s;el.className="inline-message "+k};
-function closeNav(){workspaceNav.classList.remove("open");menuToggle.setAttribute("aria-expanded","false");menuToggle.setAttribute("aria-label","Open navigation");navScrim.hidden=true}
-function openNav(){workspaceNav.classList.add("open");menuToggle.setAttribute("aria-expanded","true");menuToggle.setAttribute("aria-label","Close navigation");navScrim.hidden=false}
+function closeNav(){workspaceNav.classList.remove("open");workspaceNav.inert=true;menuToggle.setAttribute("aria-expanded","false");menuToggle.setAttribute("aria-label","Open navigation");navScrim.hidden=true}
+function openNav(){workspaceNav.inert=false;workspaceNav.classList.add("open");menuToggle.setAttribute("aria-expanded","true");menuToggle.setAttribute("aria-label","Close navigation");navScrim.hidden=false}
 function showView(view){document.querySelectorAll(".workspace-view").forEach(panel=>{panel.hidden=panel.dataset.panel!==view});document.querySelectorAll(".nav-button[data-view]").forEach(button=>button.classList.toggle("active",button.dataset.view===view));closeNav();window.scrollTo({top:0,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}
 menuToggle.addEventListener("click",()=>workspaceNav.classList.contains("open")?closeNav():openNav());navScrim.addEventListener("click",closeNav);document.querySelectorAll(".nav-button[data-view]").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.view==="staffSection"&&section.hidden)return;showView(button.dataset.view)}));document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNav()});
 const roleName=r=>({owner:"Owner / CEO",vice_admin:"Vice Administrator",web_developer:"Web Developer",application_developer:"Application Developer",engineer:"Engineer",staff:"Staff Member"})[r]||r;
