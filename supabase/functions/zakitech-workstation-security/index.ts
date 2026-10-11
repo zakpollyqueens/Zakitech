@@ -23,7 +23,7 @@ Deno.serve(async(req:Request)=>{
  const action=body.action;
  const {data:record,error:readError}=await admin.from("zt_workstation_credentials").select("passcode_salt,passcode_hash,failed_attempts,locked_until").eq("user_id",auth.user.id).maybeSingle();
  if(readError)return reply(500,{error:"Could not check workstation security."});
- if(action==="status")return reply(200,{configured:!!record});
+ if(action==="status")return reply(200,{configured:!!record,credentialType:record?.credential_type||null});
  if(action==="setup"){
   const passcode=typeof body.passcode==="string"?body.passcode:"";
   if(!/^\d{4}$/.test(passcode))return reply(400,{error:"Choose exactly four digits."});
