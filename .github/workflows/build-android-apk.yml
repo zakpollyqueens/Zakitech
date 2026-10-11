@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feat/android-apk-build
+      - feat/zak-branding-live-refresh
     paths:
       - '**.html'
       - 'assets/**'
