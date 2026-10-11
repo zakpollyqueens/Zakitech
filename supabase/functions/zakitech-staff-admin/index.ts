@@ -67,7 +67,7 @@ Deno.serve(async(req:Request)=>{
   return reply(200,{message:"Login username updated. The account can use the new username at the next sign-in.",username});
  }
  if(b.action==="list-staff"){
-  const {data,error}=await admin.from("zt_profiles").select("user_id,username,email,display_name,phone,avatar_path,role,status,must_change_password,created_at").order("created_at",{ascending:false});
+  const {data,error}=await admin.from("zt_profiles").select("user_id,username,email,display_name,phone,avatar_path,role,status,full_access,must_change_password,created_at").order("created_at",{ascending:false});
   if(error)return reply(500,{error:"Could not load staff records."});
   const staff=[];
   for(const p of data||[]){
@@ -81,6 +81,7 @@ Deno.serve(async(req:Request)=>{
   const username=typeof b.username==="string"?b.username.trim().toLowerCase():"",email=typeof b.email==="string"?b.email.trim().toLowerCase():"",display=typeof b.display_name==="string"?b.display_name.trim():"",role=typeof b.role==="string"?b.role as Role:"staff",fullAccess=b.full_access===true||b.full_access==="true";
   if(!/^[a-z0-9._-]{3,32}$/.test(username)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||display.length<2||display.length>100||!roles.includes(role))return reply(400,{error:"Provide a valid username, email, display name, and role."});
   if(role==="owner"||(role==="vice_admin"&&actor.role!=="owner"))return reply(403,{error:"Only the owner can appoint a Vice Administrator; owner roles cannot be assigned here."});
+  if(fullAccess&&actor.role!=="owner")return reply(403,{error:"Only the CEO/owner can grant full workspace access."});
   const {data:byName}=await admin.from("zt_profiles").select("user_id").eq("username",username).maybeSingle();
   const {data:byEmail}=await admin.from("zt_profiles").select("user_id").ilike("email",email).maybeSingle();
   if(byName||byEmail)return reply(409,{error:"That username or email is already assigned."});
@@ -90,6 +91,18 @@ Deno.serve(async(req:Request)=>{
   if(pe){await admin.auth.admin.deleteUser(invite.user.id);return reply(500,{error:"The account could not be saved. No staff account was created."})}
   await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,target_user_id:invite.user.id,event_type:"staff_created",details:{username,role,full_access:fullAccess}});
   return reply(201,{message:"Invitation sent. The staff member must use the email invitation to set their password.",username});
+ }
+ if(b.action==="set-full-access"){
+  if(actor.role!=="owner")return reply(403,{error:"Only the CEO/owner can change full workspace access."});
+  const id=typeof b.user_id==="string"?b.user_id:"",enabled=b.full_access===true;
+  if(!id||id===ud.user.id)return reply(400,{error:"Choose another staff account to update."});
+  const {data:target,error:targetError}=await admin.from("zt_profiles").select("user_id,role,username").eq("user_id",id).maybeSingle();
+  if(targetError||!target)return reply(404,{error:"Staff account not found."});
+  if(target.role==="owner"||target.role==="vice_admin")return reply(403,{error:"Full-access grants cannot replace or modify CEO/vice-administrator roles."});
+  const {error}=await admin.from("zt_profiles").update({full_access:enabled,updated_at:new Date().toISOString()}).eq("user_id",id);
+  if(error)return reply(500,{error:"Could not update full workspace access."});
+  await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,target_user_id:id,event_type:enabled?"full_workspace_access_granted":"full_workspace_access_revoked",details:{full_access:enabled}});
+  return reply(200,{message:enabled?"Full workspace access granted, including Governance Board access.":"Full workspace access revoked; explicit workstation assignments remain."});
  }
  if(b.action==="set-status"){
   const id=typeof b.user_id==="string"?b.user_id:"",status=b.status;
