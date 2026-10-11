@@ -8,13 +8,12 @@ Deno.serve(async(req:Request)=>{
  let body:{identity?:unknown;password?:unknown};try{body=await req.json()}catch{return reply(400,{error:"Invalid request."})}
  const identity=typeof body.identity==="string"?body.identity.trim().toLowerCase():"";
  const password=typeof body.password==="string"?body.password:"";
- if(!identity||identity.length>254||!password||password.length>1024)return reply(400,{error:"Enter your assigned username/email and password."});
+ if(!identity||identity.length>32||identity.includes("@")||!password||password.length>1024)return reply(400,{error:"Enter your assigned username and password."});
  const url=Deno.env.get("SUPABASE_URL"),serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),anonKey=Deno.env.get("SUPABASE_ANON_KEY");
  if(!url||!serviceKey||!anonKey)return reply(503,{error:"The sign-in service is not configured yet."});
  const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
  const auth=createClient(url,anonKey,{auth:{persistSession:false,autoRefreshToken:false}});
- const col=identity.includes("@")?"email":"username";
- const {data:p,error:pe}=await admin.from("zt_profiles").select("user_id,email,status").eq(col,identity).maybeSingle();
+ const {data:p,error:pe}=await admin.from("zt_profiles").select("user_id,email,status").eq("username",identity).maybeSingle();
  if(pe||!p||p.status!=="active")return reply(401,{error:"The sign-in details are incorrect or this account is not active."});
  const {data,error}=await auth.auth.signInWithPassword({email:p.email,password});
  if(error||!data.session||data.user.id!==p.user_id)return reply(401,{error:"The sign-in details are incorrect or this account is not active."});
