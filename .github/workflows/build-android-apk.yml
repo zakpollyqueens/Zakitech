@@ -1,0 +1,107 @@
+name: Build ZakiTech Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feat/android-apk-build
+    paths:
+      - '**.html'
+      - 'assets/**'
+      - 'manifest.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - '.github/workflows/build-android-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build installable APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prepare bundled website
+        shell: bash
+        run: |
+          mkdir -p www
+          cp ./*.html ./manifest.json www/
+          cp -R assets www/assets
+          mkdir -p assets
+          node --input-type=module <<'NODE'
+          import sharp from 'sharp';
+          await sharp('assets/images/zakitech-app-icon.svg')
+            .resize(1024, 1024, { fit: 'contain', background: '#06152b' })
+            .png()
+            .toFile('assets/icon-only.png');
+          await sharp('assets/images/zakitech-app-icon.svg')
+            .resize(2732, 2732, { fit: 'contain', background: '#06152b' })
+            .png()
+            .toFile('assets/splash.png');
+          NODE
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Generate Android launcher icons
+        run: npx capacitor-assets generate --android
+
+      - name: Sync bundled web app
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Publish APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZakiTech-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Prepare public APK asset
+        if: github.ref == 'refs/heads/main'
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ZakiTech.apk
+
+      - name: Publish APK to GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          name: ZakiTech Android Test Build v0.1.0
+          body: |
+            Initial ZakiTech Android test build for device testing.
+
+            This is a debug-signed test APK, not a production-signed release. Install only if you trust this test build. We will prepare a production-signed release after device testing.
+          files: ZakiTech.apk
+          draft: false
+          prerelease: false
+          make_latest: true
+          overwrite_files: true
