@@ -4,13 +4,7 @@
   if(!client||window.__zakitechLiveSyncInstalled)return;
   window.__zakitechLiveSyncInstalled=true;
 
-  const tables=[
-    "zt_profiles","zt_products","zt_workstation_assignments","zt_product_builds",
-    "zt_announcements","zt_notifications","zt_product_messages","zt_tasks",
-    "zt_staff_messages","zt_staff_direct_messages","zt_meetings","zt_meeting_rsvps",
-    "zt_board_items","zt_performance_events","zt_staff_exit_requests"
-  ];
-  let channel=null,activeUser=null,statusNode=null,retryTimer=null;
+  let channel=null,activeUser=null,statusNode=null;
   const setStatus=(state,label)=>{
     if(!statusNode){
       statusNode=document.createElement("span");
@@ -28,11 +22,10 @@
     statusNode.querySelector("span").textContent=label;
     statusNode.title=label;
   };
-  const requestRefresh=(detail={reason:"realtime"})=>{
+  const requestRefresh=(detail={reason:"broadcast"})=>{
     window.dispatchEvent(new CustomEvent("zakitech:live-change",{detail}));
   };
   const stop=async()=>{
-    if(retryTimer){clearTimeout(retryTimer);retryTimer=null}
     if(channel){const old=channel;channel=null;try{await client.removeChannel(old)}catch(_){}}
     activeUser=null;
   };
@@ -42,20 +35,14 @@
     await stop();
     activeUser=userId;
     setStatus("connecting","Connecting live updates…");
-    let next=client.channel("zakitech-live-workspace-"+userId);
-    for(const table of tables){
-      next=next.on("postgres_changes",{event:"*",schema:"public",table},payload=>{
-        requestRefresh({reason:"realtime",table,eventType:payload.eventType||"UPDATE"});
+    channel=client.channel("zt-live-workspace",{config:{private:true}})
+      .on("broadcast",{event:"workspace_changed"},message=>{
+        requestRefresh({reason:"broadcast",...(message?.payload||{})});
       });
-    }
-    channel=next;
     channel.subscribe(state=>{
       if(state==="SUBSCRIBED")setStatus("live","Live updates on");
-      else if(state==="CHANNEL_ERROR"||state==="TIMED_OUT"){
-        setStatus("error","Live updates reconnecting…");
-      }else if(state==="CLOSED"){
-        setStatus("offline","Live updates disconnected");
-      }
+      else if(state==="CHANNEL_ERROR"||state==="TIMED_OUT")setStatus("error","Live updates reconnecting…");
+      else if(state==="CLOSED")setStatus("offline","Live updates disconnected");
     });
   };
   const syncSession=async()=>{
