@@ -22,9 +22,22 @@
     statusNode.querySelector("span").textContent=label;
     statusNode.title=label;
   };
-  const requestRefresh=(detail={reason:"broadcast"})=>{
-    window.dispatchEvent(new CustomEvent("zakitech:live-change",{detail}));
+  let fallbackReloadTimer=null,fallbackReloadPending=false;
+  const safeFallbackReload=()=>{
+    if(window.__zakitechLiveRefreshHandled)return;
+    if(document.hidden)return;
+    if(document.querySelector("input:focus,textarea:focus,select:focus,[contenteditable=true]:focus")){fallbackReloadPending=true;return}
+    location.reload();
   };
+  const requestRefresh=(detail={reason:"broadcast"})=>{
+    window.__zakitechLiveRefreshHandled=false;
+    window.dispatchEvent(new CustomEvent("zakitech:live-change",{detail}));
+    clearTimeout(fallbackReloadTimer);
+    fallbackReloadTimer=setTimeout(safeFallbackReload,1200);
+  };
+  document.addEventListener("focusout",()=>{
+    if(fallbackReloadPending){fallbackReloadPending=false;safeFallbackReload()}
+  },true);
   const stop=async()=>{
     if(channel){const old=channel;channel=null;try{await client.removeChannel(old)}catch(_){}}
     activeUser=null;
