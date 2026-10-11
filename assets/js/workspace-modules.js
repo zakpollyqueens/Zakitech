@@ -179,6 +179,16 @@ function bind(){document.querySelectorAll("[data-open-view]").forEach(button=>bu
  $("buildForm").addEventListener("submit",async e=>{e.preventDefault();const btn=$("buildForm").querySelector('button[type="submit"]'),file=$("buildFile").files?.[0];btn.disabled=true;try{if(!file)throw Error("Choose a build package first.");if(file.size>100*1024*1024)throw Error("The package must be 100 MB or smaller.");if(!/\.(apk|aab|zip)$/i.test(file.name))throw Error("Only APK, AAB or ZIP files are accepted.");const metadata={product_id:$("buildProduct").value,version:$("buildVersion").value,title:$("buildTitle").value,description:$("buildDescription").value,release_notes:$("buildNotes").value,channel:$("buildChannel").value,file_name:file.name,file_size:file.size};say("buildMessage","Preparing a private upload…");const prepared=await call({action:"prepare-build",...metadata});say("buildMessage","Uploading build to private staging. Please keep this page open…");const {error}=await client.storage.from("zt-build-staging").uploadToSignedUrl(prepared.path,prepared.token,file,{contentType:file.type||"application/octet-stream",cacheControl:"3600"});if(error)throw error;say("buildMessage","Upload complete. Submitting build for leadership verification…");await call({action:"submit-build",...metadata,storage_path:prepared.path});$("buildForm").reset();say("buildMessage","Build submitted. It remains private until the CEO or Vice Administrator approves and publishes it.","good");await refresh()}catch(e){say("buildMessage",e.message||"Could not upload the build.","error")}finally{btn.disabled=false}});
  $("manualMessageForm").addEventListener("submit",async e=>{e.preventDefault();try{await call({action:"create-message",product_id:$("messageProduct").value,sender_name:$("messageSender").value,sender_email:$("messageEmail").value,subject:$("messageSubject").value,message:$("messageBody").value});$("manualMessageForm").reset();say("inboxMessage","Message added to the product inbox.","good");await refresh()}catch(e){say("inboxMessage",e.message,"error")}});
 }
+let liveRefreshTimer=null,liveRefreshPending=false;
+function scheduleLiveRefresh(){
+ if(document.hidden)return;
+ const editing=document.querySelector("input:focus,textarea:focus,select:focus,[contenteditable=true]:focus");
+ if(editing){liveRefreshPending=true;return}
+ clearTimeout(liveRefreshTimer);
+ liveRefreshTimer=setTimeout(async()=>{try{await refresh();pageMessage("Workspace synced with the latest company updates.","good")}catch(e){console.warn("Live workspace refresh failed:",e)}},350);
+}
+window.addEventListener("zakitech:live-change",scheduleLiveRefresh);
+document.addEventListener("focusout",()=>{if(liveRefreshPending){liveRefreshPending=false;scheduleLiveRefresh()}},true);
 async function init(){try{bind();await refresh();pageMessage("Workspace modules and assigned workstations loaded.","good")}catch(e){console.error("ZakiTech workspace modules:",e);pageMessage(e.message||"Some workspace modules could not load.","error")}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else void init();
 })();
