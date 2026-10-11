@@ -1,6 +1,7 @@
 -- Per-user workstation passcodes. Never expose verifier material to browser clients.
 create table if not exists public.zt_workstation_credentials (
   user_id uuid primary key references auth.users(id) on delete cascade,
+  credential_type text not null default 'pin' check (credential_type in ('pin','password')),
   passcode_salt text not null,
   passcode_hash text not null,
   failed_attempts integer not null default 0 check (failed_attempts >= 0),
