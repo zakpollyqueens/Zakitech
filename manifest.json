@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "ZakiTech",
+  "short_name": "ZakiTech",
+  "description": "ZakiTech company workspace — manage, empower, grow.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#06152b",
+  "theme_color": "#082d4b",
+  "icons": [
+    {
+      "src": "assets/images/zakitech-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/images/zakitech-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
