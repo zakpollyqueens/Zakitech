@@ -2,7 +2,7 @@
   "id": "/",
   "name": "ZakiTech",
   "short_name": "ZakiTech",
-  "description": "ZakiTech company workspace — manage, empower, grow.",
+  "description": "ZakiTech — Equipping minds with IT solutions.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
