@@ -18,11 +18,12 @@ Deno.serve(async(req:Request)=>{
  const {data:authData,error:authError}=await db.auth.getUser(token);
  if(authError||!authData.user)return reply(401,{error:"Your session is invalid. Please sign in again."});
  const uid=authData.user.id;
- const {data:actor,error:profileError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status").eq("user_id",uid).maybeSingle();
+ const {data:actor,error:profileError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status,full_access").eq("user_id",uid).maybeSingle();
  if(profileError||!actor||actor.status!=="active")return reply(403,{error:"Your account is not active."});
  const {data:workspaceBoardGrant}=await db.from("zt_board_members").select("access_level").eq("user_id",uid).maybeSingle();
  const hasFullWorkspace=workspaceBoardGrant?.access_level==="full_workspace";
- const isAdmin=adminRoles.includes(actor.role)||hasFullWorkspace,canFinance=financeRoles.includes(actor.role)||hasFullWorkspace;
+ const profileFullAccess=actor.full_access===true;
+ const isAdmin=adminRoles.includes(actor.role)||hasFullWorkspace||profileFullAccess,canFinance=financeRoles.includes(actor.role)||hasFullWorkspace||profileFullAccess;
  const requireAdmin=()=>{if(!isAdmin)throw Object.assign(Error("Only the owner or vice administrator can manage staff performance."),{status:403})};
  const requireFinance=()=>{if(!canFinance)throw Object.assign(Error("Finance permission is required for payroll actions."),{status:403})};
  let b:Record<string,unknown>;try{b=await req.json()}catch{return reply(400,{error:"Invalid request body."})}
@@ -32,7 +33,7 @@ Deno.serve(async(req:Request)=>{
    const {data:boardMember,error}=await db.from("zt_board_members").select("id,access_level,board_title").eq("user_id",uid).maybeSingle();
    if(error)throw Error("Could not verify your board access.");
    const {data:grants,error:grantError}=await db.from("zt_workstation_assignments").select("workstation,product_id").eq("user_id",uid);if(grantError)throw Error("Could not verify workstation assignments.");
-   return reply(200,{role:actor.role,is_admin:isAdmin,is_core_admin:adminRoles.includes(actor.role),full_workspace:hasFullWorkspace,is_board_member:!!boardMember,board_title:boardMember?.board_title||null,access_level:boardMember?.access_level||null,workstations:grants||[]});
+   return reply(200,{role:actor.role,is_admin:isAdmin,is_core_admin:adminRoles.includes(actor.role),full_workspace:hasFullWorkspace||profileFullAccess,is_profile_full_access:profileFullAccess,is_board_member:!!boardMember,board_title:boardMember?.board_title||null,access_level:boardMember?.access_level||null,workstations:grants||[]});
   }
   if(action==="search-staff"){
    if(!isAdmin)return reply(403,{error:"Staff search is restricted to administrators."});
@@ -264,7 +265,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{message:"Conversation marked as read."});
   }
   if(action==="meetings-bootstrap"){
-   const isAdmin=adminRoles.includes(actor.role);
+   const isAdmin=adminRoles.includes(actor.role)||actor.full_access===true||hasFullWorkspace;
    const {data:boardMember}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();
    let q=db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles(username,display_name))").order("starts_at",{ascending:true}).limit(200);
    if(!isAdmin)q=q.in("audience",boardMember?["all_staff","board"]:["all_staff"]);
@@ -287,8 +288,8 @@ Deno.serve(async(req:Request)=>{
    if(!["attending","maybe","declined"].includes(response))return reply(400,{error:"Choose attending, maybe, or declined."});
    const {data:meeting,error:me}=await db.from("zt_meetings").select("id,status,audience").eq("id",id).maybeSingle();
    if(me||!meeting||meeting.status==="cancelled")return reply(404,{error:"Meeting not found or cancelled."});
-   if(meeting.audience==="admins"&&!adminRoles.includes(actor.role))return reply(403,{error:"This meeting is restricted to administrators."});
-   if(meeting.audience==="board"&&!adminRoles.includes(actor.role)){const {data:bm}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();if(!bm)return reply(403,{error:"This meeting is restricted to board members."})}
+   if(meeting.audience==="admins"&&!isAdmin)return reply(403,{error:"This meeting is restricted to administrators."});
+   if(meeting.audience==="board"&&!isAdmin){const {data:bm}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();if(!bm)return reply(403,{error:"This meeting is restricted to board members."})}
    const {error}=await db.from("zt_meeting_rsvps").upsert({meeting_id:id,user_id:uid,response,updated_at:new Date().toISOString()},{onConflict:"meeting_id,user_id"});
    if(error)throw Error("Could not save your RSVP.");
    return reply(200,{message:"Meeting response saved."});
@@ -350,7 +351,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{message:"Share register record saved. Formal issuance remains subject to company approvals and applicable law.",share:result.data});
   }
   if(action==="board-save-item"){
-   const isBoardAdmin=adminRoles.includes(actor.role);
+   const isBoardAdmin=isAdmin;
    const {data:membership,error:me}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();
    if(me)throw Error("Could not verify board membership.");
    if(!isBoardAdmin&&!membership)return reply(403,{error:"Board access is required."});
