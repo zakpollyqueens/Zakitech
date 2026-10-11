@@ -181,6 +181,7 @@ function bind(){document.querySelectorAll("[data-open-view]").forEach(button=>bu
 }
 let liveRefreshTimer=null,liveRefreshPending=false;
 function scheduleLiveRefresh(){
+ window.__zakitechLiveRefreshHandled=true;
  if(document.hidden)return;
  const editing=document.querySelector("input:focus,textarea:focus,select:focus,[contenteditable=true]:focus");
  if(editing){liveRefreshPending=true;return}
