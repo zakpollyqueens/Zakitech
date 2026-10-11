@@ -92,6 +92,7 @@ function render(){({ "staff-communication":renderStaffCommunication,profile:rend
 function setupNav(){const finder=$("groupFindStaff");if(finder)finder.addEventListener("submit",e=>{e.preventDefault();const username=$("groupStaffUsername").value.trim().replace(/^@/,"");if(username)location.href="staff-direct-chat.html?user="+encodeURIComponent(username)});const nav=$("pageSideNav"),scrim=$("pageNavScrim"),toggle=$("pageMenuToggle");const close=()=>{nav.classList.remove("open");scrim.hidden=true;toggle.setAttribute("aria-expanded","false")};toggle.addEventListener("click",()=>{const open=!nav.classList.contains("open");nav.classList.toggle("open",open);scrim.hidden=!open;toggle.setAttribute("aria-expanded",String(open))});scrim.addEventListener("click",close);nav.querySelectorAll("a").forEach(a=>a.addEventListener("click",close));document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});$("pageSignOut").addEventListener("click",async()=>{sessionStorage.removeItem("ztOverviewApproved");sessionStorage.removeItem("ztOverviewApproved");await client.auth.signOut();location.href="index.html"})}
 let liveRefreshTimer=null,liveRefreshPending=false;
 async function refreshFromLiveChange(){
+ window.__zakitechLiveRefreshHandled=true;
  if(document.hidden)return;
  if(document.querySelector("#pageContent input:focus,#pageContent textarea:focus,#pageContent select:focus,[contenteditable=true]:focus")){liveRefreshPending=true;return}
  clearTimeout(liveRefreshTimer);
