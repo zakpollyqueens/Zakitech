@@ -20,7 +20,9 @@ Deno.serve(async(req:Request)=>{
  const uid=authData.user.id;
  const {data:actor,error:profileError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status").eq("user_id",uid).maybeSingle();
  if(profileError||!actor||actor.status!=="active")return reply(403,{error:"Your account is not active."});
- const isAdmin=adminRoles.includes(actor.role),canFinance=financeRoles.includes(actor.role);
+ const {data:workspaceBoardGrant}=await db.from("zt_board_members").select("access_level").eq("user_id",uid).maybeSingle();
+ const hasFullWorkspace=workspaceBoardGrant?.access_level==="full_workspace";
+ const isAdmin=adminRoles.includes(actor.role)||hasFullWorkspace,canFinance=financeRoles.includes(actor.role)||hasFullWorkspace;
  const requireAdmin=()=>{if(!isAdmin)throw Object.assign(Error("Only the owner or vice administrator can manage staff performance."),{status:403})};
  const requireFinance=()=>{if(!canFinance)throw Object.assign(Error("Finance permission is required for payroll actions."),{status:403})};
  let b:Record<string,unknown>;try{b=await req.json()}catch{return reply(400,{error:"Invalid request body."})}
@@ -292,7 +294,7 @@ Deno.serve(async(req:Request)=>{
   }
   if(action==="board-bootstrap"){
    const isBoardAdmin=adminRoles.includes(actor.role);
-   const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,created_at,profile:zt_profiles(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
+   const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,access_level,created_at,profile:zt_profiles(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
    if(membershipError)throw Error("Could not check board access.");
    if(!isBoardAdmin&&!membership)return reply(403,{error:"The Governance Board is restricted to administrators and explicitly authorized board members."});
    let q=db.from("zt_board_items").select("*,creator:zt_profiles!zt_board_items_created_by_fkey(username,display_name)").order("created_at",{ascending:false}).limit(200);
@@ -303,13 +305,14 @@ Deno.serve(async(req:Request)=>{
   }
   if(action==="board-add-member"){
    requireAdmin();
-   const username=clean(b.username,80).replace(/^@/,""),title=clean(b.board_title,100)||"Board Member";
+   const username=clean(b.username,80).replace(/^@/,""),title=clean(b.board_title,100)||"Board Member",accessLevel=clean(b.access_level,30)||"board_only";
+   if(!["board_only","full_workspace"].includes(accessLevel))return reply(400,{error:"Choose a valid board access level."});
    if(!username)return reply(400,{error:"Enter a staff username."});
    const {data:person,error:personError}=await db.from("zt_profiles").select("user_id,status").ilike("username",username).maybeSingle();
    if(personError||!person||person.status!=="active")return reply(404,{error:"No active account found for that username."});
-   const {data:member,error}=await db.from("zt_board_members").upsert({user_id:person.user_id,board_title:title,added_by:uid},{onConflict:"user_id"}).select("*").single();
+   const {data:member,error}=await db.from("zt_board_members").upsert({user_id:person.user_id,board_title:title,access_level:accessLevel,added_by:uid},{onConflict:"user_id"}).select("*").single();
    if(error)throw Error("Could not authorize board member.");
-   await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:person.user_id,event_type:"board_member_authorized",details:{board_title:title}});
+   await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:person.user_id,event_type:"board_member_authorized",details:{board_title:title,access_level:accessLevel}});
    return reply(200,{message:"Board member access granted.",member});
   }
   if(action==="board-remove-member"){
@@ -320,6 +323,25 @@ Deno.serve(async(req:Request)=>{
    const {error}=await db.from("zt_board_members").delete().eq("id",id);if(error)throw Error("Could not remove board access.");
    await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:member.user_id,event_type:"board_member_access_removed",details:{membership_id:id}});
    return reply(200,{message:"Board access removed."});
+  }
+  if(action==="board-shares-bootstrap"){
+   requireAdmin();
+   const {data:rows,error}=await db.from("zt_board_share_register").select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles(username,display_name))").order("created_at",{ascending:false}).limit(500);
+   if(error)throw Error("Could not load the board share register.");
+   return reply(200,{shares:rows||[],members:(await db.from("zt_board_members").select("id,user_id,board_title,profile:zt_profiles(username,display_name)").order("created_at",{ascending:false})).data||[]});
+  }
+  if(action==="board-share-save"){
+   requireAdmin();
+   const id=clean(b.id,80),memberId=clean(b.board_member_id,80),shareClass=clean(b.share_class,80)||"Ordinary",quantity=Number(b.share_quantity),price=Number(b.price_per_share),currency=clean(b.currency,10)||"UGX",status=clean(b.status,20)||"draft",notes=clean(b.notes,3000);
+   if(!memberId||shareClass.length<2||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(price)||price<0||!["UGX","USD","KES","TZS"].includes(currency)||!["draft","offered","accepted","paid","issued","cancelled"].includes(status))return reply(400,{error:"Enter valid share details, price, currency and status."});
+   const {data:member,error:memberError}=await db.from("zt_board_members").select("id,user_id").eq("id",memberId).maybeSingle();
+   if(memberError||!member)return reply(404,{error:"Choose an authorized board member."});
+   if(status==="issued"&&!/resolution\s*:/i.test(notes))return reply(400,{error:"Before marking shares as issued, add a formal board/company resolution reference in Notes using 'Resolution: …'."});
+   const values={board_member_id:memberId,share_class:shareClass,share_quantity:quantity,price_per_share:price,currency,status,notes,updated_at:new Date().toISOString(),...(status==="issued"?{approved_by:uid}:{})};
+   const result=id?await db.from("zt_board_share_register").update(values).eq("id",id).select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles(username,display_name))").maybeSingle():await db.from("zt_board_share_register").insert({...values,created_by:uid}).select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles(username,display_name))").single();
+   if(result.error||!result.data)throw Error("Could not save the share register record.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:member.user_id,event_type:"board_share_register_saved",details:{share_record_id:result.data.id,status,quantity,currency,price_per_share:price,share_class:shareClass}});
+   return reply(200,{message:"Share register record saved. Formal issuance remains subject to company approvals and applicable law.",share:result.data});
   }
   if(action==="board-save-item"){
    const isBoardAdmin=adminRoles.includes(actor.role);
