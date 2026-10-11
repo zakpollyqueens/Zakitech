@@ -1,4 +1,5 @@
 (()=>{"use strict";
+for(const src of ["assets/js/workspace-preferences.js","assets/js/workspace-navigation.js"]){if(!document.querySelector('script[src="'+src+'"]')){const tag=document.createElement("script");tag.src=src;tag.async=false;document.head.append(tag)}}
 const client=window.ZakiTechSupabase;if(!client)return;
 const $=id=>document.getElementById(id);
 let state={profile:null,is_admin:false,products:[],assignments:[],tasks:[],announcements:[],notifications:[],messages:[],builds:[],staff:[]};
