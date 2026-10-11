@@ -52,19 +52,21 @@ Open `index.html` through a static web server. The Supabase project URL and publ
 
 ZakiTech is a separate company-management application. ZakiChat is one product that will eventually be represented in the ZakiTech Product Hub; it is not the ZakiTech codebase.
 
-## Workstation security rollout (in progress)
+## Workstation security rollout (partially implemented)
 
 Branch `feat/staff-onboarding-workstation-security` adds the initial server-side foundation for application workstation passcodes:
 
 - `supabase/migrations/20261011000000_zakitech_workstation_security.sql` creates a server-only credential table with row-level security and no direct client grants.
 - `supabase/functions/zakitech-workstation-security/index.ts` provides authenticated setup, status, and verification actions. It uses salted PBKDF2-SHA-256 verifiers, checks active account status, rate-limits failed attempts, and writes audit events.
-- The Appearance & Settings page includes passcode setup UI.
+- The Appearance & Settings page lets a signed-in user choose a four-digit PIN or a separate application password (8–128 characters).
+- The shared workstation-lock script is loaded on the protected workspace pages, provides a manual Lock button, prompts for verification when configured, and locks after inactivity or a sufficiently long background period.
+- The credential table is server-only with RLS and no direct client grants. The Edge Function stores salted PBKDF2-SHA-256 verifiers, validates the active account, rate-limits failed attempts, and audits credential creation and successful verification.
 
-This feature is not ready for production until the migration and Edge Function are deployed and tested. The actual workstation lock screen, unlock flow, administrator-controlled passcode reset, profile-image policy, and invitation/onboarding profile upload remain follow-up work. Do not treat a configured passcode as an application-wide lock until all protected workspace entry points enforce the lock state.
+The database migration and Edge Function have been deployed. The website lock screen is implemented as a client-side convenience barrier, not a complete device-security boundary: users with technical access to browser storage/devtools may bypass a JavaScript overlay, and backend APIs do not rely on this overlay for authorization. Administrator-controlled credential reset, staff invite-link onboarding, and official profile-image policy remain follow-up work.
 
 
 ## Reinstall and mobile security requirements
 
 - A reinstall clears device-local authentication/session data; the staff member signs in again with their assigned username and password. The account's profile, role, assignments, products, tasks, and other server-stored workspace data remain associated with the same Supabase user and are reloaded after successful sign-in.
 - The current repository is a browser-based web application; it does not yet contain a native Android/Capacitor project. Native fingerprint/face authentication, Android Keystore-backed credentials, and application-level lock/resume handling cannot be truthfully enabled by changing the website alone. These require a packaged native app and device testing.
-- The workstation passcode backend currently supplies setup/status/verification primitives only. Do not release it as an enforced app lock until the lock screen, unlock lifecycle, recovery, and all protected entry points are implemented and tested.
+- The website currently has a PIN/password setup and a client-side lock/unlock screen. The current project does not include a native Android/Capacitor application, so fingerprint/face unlock and Android Keystore protection are not implemented. Those require a native app package, platform biometric APIs, and device testing before the mobile security requirement can be considered complete.
