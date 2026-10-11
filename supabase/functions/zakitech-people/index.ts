@@ -63,12 +63,13 @@ Deno.serve(async(req:Request)=>{
    const appUrl=Deno.env.get("ZAKICHAT_SUPABASE_URL"),appKey=Deno.env.get("ZAKICHAT_SUPABASE_SERVICE_ROLE_KEY");
    if(!appUrl||!appKey)return reply(503,{error:"ZakiChat moderation bridge is not configured. Set ZAKICHAT_SUPABASE_URL and ZAKICHAT_SUPABASE_SERVICE_ROLE_KEY as server-side secrets first."});
    const isSupportRole=["product_manager","support_officer"].includes(actor.role);
+   const {data:zakichatProduct}=await db.from("zt_products").select("id").eq("slug","zakichat").maybeSingle();
    let supportAssigned=false;
-   if(isSupportRole){
-    const {data:grant}=await db.from("zt_workstation_assignments").select("id").eq("user_id",uid).eq("workstation","support_inbox").limit(1).maybeSingle();
+   if(isSupportRole&&zakichatProduct?.id){
+    const {data:grant}=await db.from("zt_workstation_assignments").select("id").eq("user_id",uid).eq("workstation","support_inbox").eq("product_id",zakichatProduct.id).limit(1).maybeSingle();
     supportAssigned=!!grant;
    }
-   if(!isAdmin&&!supportAssigned)return reply(403,{error:"Product support is restricted to administrators and staff explicitly assigned to the support inbox."});
+   if(!isAdmin&&!supportAssigned)return reply(403,{error:"Product support is restricted to administrators and staff assigned to ZakiChat support."});
    const appDb=createClient(appUrl,appKey,{auth:{persistSession:false,autoRefreshToken:false}});
    const [requests,profiles,authUsers]=await Promise.all([
     appDb.from("support_requests").select("id,user_id,category,subject,message,status,created_at,read_at,resolved_at").order("created_at",{ascending:false}).limit(300),
@@ -86,9 +87,10 @@ Deno.serve(async(req:Request)=>{
    const appUrl=Deno.env.get("ZAKICHAT_SUPABASE_URL"),appKey=Deno.env.get("ZAKICHAT_SUPABASE_SERVICE_ROLE_KEY");
    if(!appUrl||!appKey)return reply(503,{error:"ZakiChat moderation bridge is not configured."});
    const isSupportRole=["product_manager","support_officer"].includes(actor.role);
+   const {data:zakichatProduct}=await db.from("zt_products").select("id").eq("slug","zakichat").maybeSingle();
    let supportAssigned=false;
-   if(isSupportRole){const {data:grant}=await db.from("zt_workstation_assignments").select("id").eq("user_id",uid).eq("workstation","support_inbox").limit(1).maybeSingle();supportAssigned=!!grant}
-   if(!isAdmin&&!supportAssigned)return reply(403,{error:"You are not assigned to product support."});
+   if(isSupportRole&&zakichatProduct?.id){const {data:grant}=await db.from("zt_workstation_assignments").select("id").eq("user_id",uid).eq("workstation","support_inbox").eq("product_id",zakichatProduct.id).limit(1).maybeSingle();supportAssigned=!!grant}
+   if(!isAdmin&&!supportAssigned)return reply(403,{error:"You are not assigned to ZakiChat support."});
    const id=clean(b.id,80),status=clean(b.status,20);
    if(!id||!["open","read","resolved"].includes(status))return reply(400,{error:"Choose a valid complaint and status."});
    const appDb=createClient(appUrl,appKey,{auth:{persistSession:false,autoRefreshToken:false}}),now=new Date().toISOString();
@@ -107,7 +109,6 @@ Deno.serve(async(req:Request)=>{
    if(!isAdmin&&!supportAssigned)return reply(403,{error:"You are not assigned to product moderation."});
    const target=clean(b.user_id,80);
    if(!target)return reply(400,{error:"A ZakiChat user ID is required."});
-   if(!isAdmin)return reply(403,{error:"Only the CEO or Vice Administrator can restore suspended ZakiChat accounts."});
    const appDb=createClient(appUrl,appKey,{auth:{persistSession:false,autoRefreshToken:false}});
    const {data:adminTarget,error:adminCheck}=await appDb.from("admin_users").select("user_id").eq("user_id",target).maybeSingle();
    if(adminCheck)throw Error("Could not verify whether the target is a ZakiChat administrator.");
