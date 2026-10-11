@@ -7,7 +7,7 @@ const profileForm=document.getElementById("profileForm"),emailForm=document.getE
 const profileMessage=document.getElementById("profileMessage"),emailMessage=document.getElementById("emailMessage"),passwordMessage=document.getElementById("passwordMessage");
 const menuToggle=document.getElementById("menuToggle"),workspaceNav=document.getElementById("workspaceNav"),navScrim=document.getElementById("navScrim");
 const avatarFile=document.getElementById("avatarFile"),avatarPreview=document.getElementById("avatarPreview"),avatarFallback=document.getElementById("avatarFallback"),directoryList=document.getElementById("directoryList");
-let profile=null,currentUser=null,selectedAvatar=null,removeAvatarRequested=false;
+let profile=null,currentUser=null,selectedAvatar=null,removeAvatarRequested=false,hasWorkspaceAccess=false;
 document.getElementById("year").textContent=new Date().getFullYear();
 const say=(s,k="")=>{msg.textContent=s;msg.className="page-message "+k};
 const fieldSay=(el,s,k="")=>{el.textContent=s;el.className="inline-message "+k};
@@ -52,7 +52,7 @@ async function loadProfile(){
  document.getElementById("newEmail").value=p.email||user.email||"";
  setAvatar(await signedAvatar(p.avatar_path),p.display_name);
  say("Secure session verified.","good");
- if(["owner","vice_admin"].includes(p.role))document.getElementById("navStaffButton").hidden=false;
+ const {data:boardGrant}=await client.from("zt_board_members").select("access_level").eq("user_id",p.user_id).maybeSingle();hasWorkspaceAccess=["owner","vice_admin"].includes(p.role)||boardGrant?.access_level==="full_workspace";if(hasWorkspaceAccess)document.getElementById("navStaffButton").hidden=false;document.getElementById("welcomeCopy").textContent=hasWorkspaceAccess?"Leadership workspace: company-wide oversight, staff access, product delivery, and board responsibilities.":"Your personal workspace: focus on assigned tasks, product responsibilities, team communication, and your professional settings.";
  if(p.must_change_password)say("Your account is active. Please set a personal password from Profile & security.", "good");
 }
 async function renderDirectory(){
@@ -187,7 +187,7 @@ async function start(){
  const {data:{session}}=await client.auth.getSession();if(!session){sessionStorage.removeItem("ztOverviewApproved");location.replace("index.html");return}
  if(sessionStorage.getItem("ztOverviewApproved")!=="1"){location.replace("zakitech-overview.html");return}
  showView("dashboard");
- try{await loadProfile();await renderDirectory();if(["owner","vice_admin"].includes(profile.role)){section.hidden=false;if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}await loadStaff()}}
+ try{await loadProfile();await renderDirectory();if(hasWorkspaceAccess){section.hidden=false;if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}await loadStaff()}}
  catch(e){console.error(e);say(e.message||"Could not verify your session. Please sign in again.","error");if(/not active|expired|sign in again/i.test(e.message||"")){await client.auth.signOut();location.replace("index.html")}}
 }
 void start();
