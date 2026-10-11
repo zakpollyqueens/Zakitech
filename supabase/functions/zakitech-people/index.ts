@@ -273,7 +273,7 @@ Deno.serve(async(req:Request)=>{
    await requireCommunication();
    const isAdmin=adminRoles.includes(actor.role)||actor.full_access===true||hasFullWorkspace;
    const {data:boardMember}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();
-   let q=db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name))").order("starts_at",{ascending:true}).limit(200);
+   let q=db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_exit_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles!zt_meeting_rsvps_user_id_fkey(username,display_name))").order("starts_at",{ascending:true}).limit(200);
    if(!isAdmin)q=q.in("audience",boardMember?["all_staff","board"]:["all_staff"]);
    const {data:meetings,error}=await q;
    if(error)throw Error("Could not load company meetings.");
@@ -302,7 +302,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{message:"Meeting response saved."});
   }
   if(action==="updates-feed"){
-   const {data:items,error}=await db.from("zt_board_items").select("id,title,body,item_type,document_url,created_at,updated_at,creator:zt_profiles!zt_board_items_created_by_fkey(username,display_name)").eq("status","published").eq("staff_visible",true).order("created_at",{ascending:false}).limit(100);
+   const {data:items,error}=await db.from("zt_board_items").select("id,title,body,item_type,document_url,created_at,updated_at,creator:zt_profiles!zt_board_items_created_by_exit_fkey(username,display_name)").eq("status","published").eq("staff_visible",true).order("created_at",{ascending:false}).limit(100);
    if(error)throw Error("Could not load company updates.");
    return reply(200,{updates:items||[]});
   }
@@ -311,7 +311,7 @@ Deno.serve(async(req:Request)=>{
    const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,access_level,created_at,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
    if(membershipError)throw Error("Could not check board access.");
    if(!isBoardAdmin&&!membership)return reply(403,{error:"The Governance Board is restricted to administrators and explicitly authorized board members."});
-   let q=db.from("zt_board_items").select("*,creator:zt_profiles!zt_board_items_created_by_fkey(username,display_name)").order("created_at",{ascending:false}).limit(200);
+   let q=db.from("zt_board_items").select("*,creator:zt_profiles!zt_board_items_created_by_exit_fkey(username,display_name)").order("created_at",{ascending:false}).limit(200);
    if(!isBoardAdmin)q=q.eq("status","published");
    const {data:items,error}=await q;if(error)throw Error("Could not load board records.");
    const members=isBoardAdmin?(await db.from("zt_board_members").select("id,user_id,board_title,created_at,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name,role,status)").order("created_at",{ascending:false})).data||[]:[];
