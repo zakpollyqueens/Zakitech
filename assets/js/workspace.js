@@ -187,7 +187,7 @@ async function start(){
  const {data:{session}}=await client.auth.getSession();if(!session){sessionStorage.removeItem("ztOverviewApproved");location.replace("index.html");return}
  if(sessionStorage.getItem("ztOverviewApproved")!=="1"){location.replace("zakitech-overview.html");return}
  showView("dashboard");
- try{await loadProfile();await renderDirectory();if(hasWorkspaceAccess){section.hidden=false;if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}await loadStaff()}}
+ try{await loadProfile();await renderDirectory();if(hasWorkspaceAccess){if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}await loadStaff()}}
  catch(e){console.error(e);say(e.message||"Could not verify your session. Please sign in again.","error");if(/not active|expired|sign in again/i.test(e.message||"")){await client.auth.signOut();location.replace("index.html")}}
 }
 void start();
