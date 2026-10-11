@@ -52,7 +52,7 @@ async function loadProfile(){
  document.getElementById("newEmail").value=p.email||user.email||"";
  setAvatar(await signedAvatar(p.avatar_path),p.display_name);
  say("Secure session verified.","good");
- const {data:boardGrant}=await client.from("zt_board_members").select("access_level").eq("user_id",p.user_id).maybeSingle();hasWorkspaceAccess=["owner","vice_admin"].includes(p.role)||boardGrant?.access_level==="full_workspace";if(hasWorkspaceAccess)document.getElementById("navStaffButton").hidden=false;document.getElementById("welcomeCopy").textContent=hasWorkspaceAccess?"Leadership workspace: company-wide oversight, staff access, product delivery, and board responsibilities.":"Your personal workspace: focus on assigned tasks, product responsibilities, team communication, and your professional settings.";
+ let access={is_admin:["owner","vice_admin"].includes(p.role),full_workspace:false};try{const {data:accessData,error:accessError}=await client.functions.invoke("zakitech-people",{body:{action:"my-access"}});if(!accessError&&accessData&&!accessData.error)access=accessData}catch(_){}hasWorkspaceAccess=!!access.is_admin;if(hasWorkspaceAccess)document.getElementById("navStaffButton").hidden=false;document.getElementById("welcomeCopy").textContent=hasWorkspaceAccess?"Leadership workspace: company-wide oversight, staff access, product delivery, and board responsibilities.":"Your personal workspace: focus on assigned tasks, product responsibilities, team communication, and your professional settings.";
  if(p.must_change_password)say("Your account is active. Please set a personal password from Profile & security.", "good");
 }
 async function renderDirectory(){
