@@ -1,7 +1,7 @@
 (()=>{"use strict";
 const RELEASE_API="https://api.github.com/repos/zakpollyqueens/Zakitech/releases/latest";
 const FALLBACK_APK="https://github.com/zakpollyqueens/Zakitech/releases/latest/download/ZakiTech.apk";
-const CURRENT_VERSION=window.ZAKITECH_BUILD_VERSION||"__ZAKITECH_BUILD_VERSION__";
+const CURRENT_VERSION=window.ZAKITECH_BUILD_VERSION||"__ZAKITECH_BUILD_VERSION__";\nlet readyDownloadUrl="";
 const $=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el};
 function mount(){
  if(document.getElementById("ztAppUpdateWidget"))return;
@@ -14,7 +14,7 @@ function mount(){
  const textBox=$("div","zt-update-copy");textBox.append(head,msg);
  wrap.append(textBox,btn);document.body.append(wrap);
  btn.addEventListener("click",async()=>{
-  if(btn.disabled)return;btn.disabled=true;btn.textContent="Checking…";msg.textContent="Checking the latest approved ZakiTech release.";
+  if(btn.disabled)return;if(readyDownloadUrl){msg.textContent="Opening the update download. After it finishes, open the APK and confirm Install in Android.";window.location.href=readyDownloadUrl;return}btn.disabled=true;btn.textContent="Checking…";msg.textContent="Checking the latest approved ZakiTech release.";
   try{
    const response=await fetch(RELEASE_API,{headers:{"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},cache:"no-store"});
    if(!response.ok)throw Error("The release service is temporarily unavailable.");
@@ -26,7 +26,7 @@ function mount(){
    if(latest&&latest===current){msg.textContent="You're using the latest published version ("+release.tag_name+").";btn.textContent="✓ App is up to date";btn.classList.add("zt-update-current");return}
    msg.textContent="Update available: "+(release.tag_name||"new version")+". Tap Download update to get it.";
    btn.textContent="⬇  Download update";btn.classList.add("zt-update-ready");
-   btn.onclick=()=>{window.location.href=apk.browser_download_url||FALLBACK_APK;msg.textContent="Download started. Open the downloaded APK and confirm Install. Android requires your confirmation to install an app update.";};
+   readyDownloadUrl=apk.browser_download_url||FALLBACK_APK;
    btn.setAttribute("aria-label","Download the latest ZakiTech Android update");
   }catch(e){msg.textContent=(e&&e.message)||"Could not check for updates. Try again when online.";btn.textContent="↻  Try again"}
   finally{btn.disabled=false}
