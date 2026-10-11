@@ -516,3 +516,6 @@ body{background-color:var(--bg,#06162c);color:var(--text,#edf7ff)}.workspace-top
 @keyframes workspaceAppShimmer{0%,55%,100%{left:-45%}80%{left:125%}}
 @media(max-width:760px){.workspace-app-download-cta{width:100%;max-width:100%}}
 @media(prefers-reduced-motion:reduce){.workspace-app-download-cta,.workspace-app-download-cta:before{animation:none!important;transition:none!important}}
+
+/* Official company motto */
+.company-motto{margin:9px 0 0;color:#8eeeff;font-size:12px;font-weight:700;letter-spacing:.025em}.footer-motto{color:#8eeeff;font-weight:700}
