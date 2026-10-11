@@ -26,6 +26,8 @@ Deno.serve(async(req:Request)=>{
  const isAdmin=adminRoles.includes(actor.role)||hasFullWorkspace||profileFullAccess,canFinance=financeRoles.includes(actor.role)||hasFullWorkspace||profileFullAccess;
  const requireAdmin=()=>{if(!isAdmin)throw Object.assign(Error("Only the owner or vice administrator can manage staff performance."),{status:403})};
  const requireFinance=()=>{if(!canFinance)throw Object.assign(Error("Finance permission is required for payroll actions."),{status:403})};
+ const hasCommunicationAccess=async()=>{if(isAdmin)return true;const {data,error}=await db.from("zt_workstation_assignments").select("id").eq("user_id",uid).eq("workstation","communication").is("product_id",null).limit(1);if(error)throw Error("Could not verify communication access.");return !!data?.length};
+ const requireCommunication=async()=>{if(!await hasCommunicationAccess())throw Object.assign(Error("Communication access has not been assigned to your account."),{status:403})};
  let b:Record<string,unknown>;try{b=await req.json()}catch{return reply(400,{error:"Invalid request body."})}
  const action=clean(b.action,80);
  try{
@@ -241,6 +243,7 @@ Deno.serve(async(req:Request)=>{
   }
 
   if(action==="chat-bootstrap"){
+   await requireCommunication();
    const {data:staff,error:staffError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status").eq("status","active").order("display_name");
    if(staffError)throw Error("Could not load the staff directory.");
    const {data:threads,error:threadError}=await db.from("zt_staff_direct_messages").select("id,sender_user_id,recipient_user_id,body,created_at,read_at").or("sender_user_id.eq."+uid+",recipient_user_id.eq."+uid).order("created_at",{ascending:true}).limit(1000);
@@ -248,6 +251,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{staff:staff||[],messages:threads||[]});
   }
   if(action==="send-direct-message"){
+   await requireCommunication();
    const target=clean(b.recipient_user_id,80),body=clean(b.body,4000);
    if(!target||target===uid||body.length<1)return reply(400,{error:"Choose another staff member and enter a message."});
    const {data:person,error:personError}=await db.from("zt_profiles").select("user_id,status").eq("user_id",target).maybeSingle();
@@ -258,6 +262,7 @@ Deno.serve(async(req:Request)=>{
    return reply(201,{message});
   }
   if(action==="mark-direct-read"){
+   await requireCommunication();
    const sender=clean(b.sender_user_id,80);
    if(!sender)return reply(400,{error:"Sender is required."});
    const {error}=await db.from("zt_staff_direct_messages").update({read_at:new Date().toISOString()}).eq("sender_user_id",sender).eq("recipient_user_id",uid).is("read_at",null);
@@ -265,6 +270,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{message:"Conversation marked as read."});
   }
   if(action==="meetings-bootstrap"){
+   await requireCommunication();
    const isAdmin=adminRoles.includes(actor.role)||actor.full_access===true||hasFullWorkspace;
    const {data:boardMember}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();
    let q=db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles(username,display_name))").order("starts_at",{ascending:true}).limit(200);
@@ -284,6 +290,7 @@ Deno.serve(async(req:Request)=>{
    return reply(201,{message:"Meeting scheduled. Add a Zoom meeting link, or configure Zoom API credentials to enable automatic meeting creation.",meeting});
   }
   if(action==="meeting-rsvp"){
+   await requireCommunication();
    const id=clean(b.meeting_id,80),response=clean(b.response,20);
    if(!["attending","maybe","declined"].includes(response))return reply(400,{error:"Choose attending, maybe, or declined."});
    const {data:meeting,error:me}=await db.from("zt_meetings").select("id,status,audience").eq("id",id).maybeSingle();
