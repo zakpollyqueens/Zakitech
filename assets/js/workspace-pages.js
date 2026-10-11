@@ -1,4 +1,5 @@
 (()=>{"use strict";
+for(const src of ["assets/js/workspace-preferences.js","assets/js/workspace-navigation.js"]){if(!document.querySelector('script[src="'+src+'"]')){const tag=document.createElement("script");tag.src=src;tag.async=false;document.head.append(tag)}}
 const client=window.ZakiTechSupabase;if(!client)return;
 const $=id=>document.getElementById(id),page=document.body.dataset.page;
 const names={"owner":"Owner / CEO","vice_admin":"Vice Administrator","web_developer":"Web Developer","application_developer":"Application Developer","engineer":"Engineer","staff":"Staff Member","product_manager":"Product Manager","project_manager":"Project Manager","qa_tester":"QA Tester / Quality Assurance","ui_ux_designer":"UI/UX Designer","devops_engineer":"DevOps / Deployment Engineer","release_manager":"Release Manager","notifications_manager":"Notifications Manager","announcements_manager":"Announcements Manager","support_officer":"Support Officer","operations_officer":"Operations Officer","security_officer":"Security Officer","finance_officer":"Finance Officer"};
