@@ -28,6 +28,11 @@ Deno.serve(async(req:Request)=>{
  let b:Record<string,unknown>;try{b=await req.json()}catch{return reply(400,{error:"Invalid request body."})}
  const action=clean(b.action,80);
  try{
+  if(action==="my-access"){
+   const {data:boardMember,error}=await db.from("zt_board_members").select("id,access_level,board_title").eq("user_id",uid).maybeSingle();
+   if(error)throw Error("Could not verify your board access.");
+   return reply(200,{role:actor.role,is_admin:isAdmin,is_core_admin:adminRoles.includes(actor.role),full_workspace:hasFullWorkspace,is_board_member:!!boardMember,board_title:boardMember?.board_title||null,access_level:boardMember?.access_level||null});
+  }
   if(action==="search-staff"){
    if(!isAdmin)return reply(403,{error:"Staff search is restricted to administrators."});
    const term=clean(b.query,80).replace(/[,%()]/g,"");
