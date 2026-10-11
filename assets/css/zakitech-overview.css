@@ -19,3 +19,15 @@
 @keyframes ztAppCtaFloat{0%,100%{box-shadow:0 12px 30px #00d8f51e,inset 0 1px #ffffff1b}50%{box-shadow:0 16px 38px #00d8f53a,inset 0 1px #ffffff1b}}
 @keyframes ztAppCtaShimmer{0%,55%,100%{left:-35%}80%{left:125%}}
 @media(prefers-reduced-motion:reduce){.zt-app-download-cta,.zt-app-download-cta:before{animation:none!important;transition:none!important}}
+
+/* Animated official Android app download CTA — company overview */
+.zt-app-download-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin:24px auto 4px}
+.zt-app-download-cta{position:relative;isolation:isolate;display:flex;align-items:center;gap:14px;min-width:min(100%,330px);padding:13px 17px;border:1px solid #85edc977;border-radius:18px;background:linear-gradient(115deg,#123f50ef,#191d42f2 55%,#173b4bef);color:#f4fbff;text-decoration:none;text-align:left;box-shadow:0 12px 35px #00d8f52a,inset 0 1px #ffffff1b;overflow:hidden;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;animation:ztAppCtaFloat 3.2s ease-in-out infinite}
+.zt-app-download-cta:before{content:"";position:absolute;inset:-80% auto -80% -35%;width:30%;transform:rotate(24deg);background:linear-gradient(90deg,transparent,#ffffff35,transparent);animation:ztAppCtaShimmer 4.5s ease-in-out infinite;z-index:-1}
+.zt-app-download-cta:hover{transform:translateY(-3px) scale(1.015);border-color:#85edc9;box-shadow:0 17px 42px #00d8f544,inset 0 1px #ffffff25}
+.app-download-orb{display:grid;place-items:center;flex:0 0 43px;height:43px;border-radius:14px;background:linear-gradient(135deg,#85edc9,#67dff4);color:#071426;font-size:1.6rem;font-weight:900;box-shadow:0 0 22px #85edc94f}
+.app-download-text{display:grid;gap:4px}.app-download-text strong{font-size:.91rem;letter-spacing:-.02em}.app-download-text small{color:#b8d0e0;font-size:.69rem}.app-download-arrow{margin-left:auto;color:#85edc9;font-size:1.25rem}
+.zt-app-download-note{margin:0;color:#9fb8ce;font-size:.7rem;line-height:1.6;text-align:center}
+@keyframes ztAppCtaFloat{0%,100%{box-shadow:0 12px 30px #00d8f51e,inset 0 1px #ffffff1b}50%{box-shadow:0 16px 38px #00d8f53a,inset 0 1px #ffffff1b}}
+@keyframes ztAppCtaShimmer{0%,55%,100%{left:-35%}80%{left:125%}}
+@media(prefers-reduced-motion:reduce){.zt-app-download-cta,.zt-app-download-cta:before{animation:none!important;transition:none!important}}
