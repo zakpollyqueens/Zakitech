@@ -53,6 +53,11 @@ jobs:
           cp ./*.html ./manifest.json www/
           cp -R assets www/assets
           mkdir -p assets
+          # Bundle Supabase locally for Android WebView reliability; do not depend on a CDN at launch.
+          cp node_modules/@supabase/supabase-js/dist/umd/supabase.min.js www/assets/js/supabase.min.js
+          for page in www/*.html; do
+            sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js#assets/js/supabase.min.js#g' "$page"
+          done
           node --input-type=module <<'NODE'
           import sharp from 'sharp';
           await sharp('assets/images/zakitech-app-icon.svg')
