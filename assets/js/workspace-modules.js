@@ -84,8 +84,8 @@ function renderDashboard(){
  };
  const drawBars=(id,rows,emptyText="No records yet. Charts update as activity is recorded.")=>{
   const box=$(id);if(!box)return;box.replaceChildren();const max=Math.max(1,...rows.map(r=>r.value));
-  if(!rows.length||!rows.some(r=>r.value)){box.append(node("div","analytics-empty",emptyText));return}
-  rows.forEach((r,i)=>{const row=node("div","analytics-bar-row"),label=node("span","analytics-bar-label",r.label),track=node("div","analytics-bar-track"),fill=node("div","analytics-bar-fill"),value=node("span","analytics-bar-value",r.value);fill.style.width=(r.value/max*100)+"%";fill.style.background=palette[i%palette.length];fill.setAttribute("role","img");fill.setAttribute("aria-label",r.label+": "+r.value);track.append(fill);row.append(label,track,value);box.append(row)});
+  if(!rows.length){box.append(node("div","analytics-empty",emptyText));return}
+  rows.forEach((r,i)=>{const row=node("div","analytics-bar-row"),label=node("span","analytics-bar-label",r.label),track=node("div","analytics-bar-track"),fill=node("div","analytics-bar-fill"),value=node("span","analytics-bar-value",r.value);fill.style.width=(r.value?Math.max(3,r.value/max*100):2)+"%";fill.style.opacity=r.value?"1":".3";fill.style.background=palette[i%palette.length];fill.setAttribute("role","img");fill.setAttribute("aria-label",r.label+": "+r.value);track.append(fill);row.append(label,track,value);box.append(row)});if(!rows.some(r=>r.value))box.append(node("div","analytics-empty",emptyText));
  };
  const lifecycle=[
   {label:"Planned",value:state.products.filter(p=>String(p.status||"").toLowerCase()==="planned").length},
