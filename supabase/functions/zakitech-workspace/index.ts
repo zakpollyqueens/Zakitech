@@ -3,8 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.0";
 
 const cors = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json"};
 const reply = (status:number, body:Record<string,unknown>) => new Response(JSON.stringify(body), {status,headers:cors});
-type Workstation = "product_development"|"release_management"|"notifications"|"announcements"|"support_inbox";
-const workstationNames:Workstation[]=["product_development","release_management","notifications","announcements","support_inbox"];
+type Workstation = "product_development"|"release_management"|"notifications"|"announcements"|"support_inbox"|"communication";
+const workstationNames:Workstation[]=["product_development","release_management","notifications","announcements","support_inbox","communication"];
 const adminRoles=["owner","vice_admin"];
 const clean=(v:unknown,max=5000)=>typeof v==="string"?v.trim().slice(0,max):"";
 
@@ -82,9 +82,10 @@ Deno.serve(async(req:Request)=>{
    const {data:builds,error:be}=await buildsQuery;if(be)throw Error("Could not load product builds.");
    let staff:any[]=[];
    if(isAdmin){const {data:s,error:se}=await db.from("zt_profiles").select("user_id,username,display_name,email,role,status,full_access").order("display_name");if(se)throw Error("Could not load staff list.");staff=s||[];}
-   const {data:staffMessages,error:sme}=await db.from("zt_staff_messages").select("*,sender:zt_profiles!zt_staff_messages_sender_id_fkey(user_id,username,display_name,role)").order("created_at",{ascending:false}).limit(150);
-   if(sme)throw Error("Could not load staff communications.");
-   return reply(200,{profile:actor,is_admin:isAdmin,products:products||[],assignments:assignments||[],tasks:tasksWithCreators,announcements:announcements||[],notifications:notifications||[],messages:messages||[],builds:builds||[],staff,staff_messages:staffMessages||[]});
+   const communicationAccess=isAdmin||(assignments||[]).some((a:any)=>a.workstation==="communication"&&!a.product_id);
+   let staffMessages:any[]=[];
+   if(communicationAccess){const {data:sm,error:sme}=await db.from("zt_staff_messages").select("*,sender:zt_profiles!zt_staff_messages_sender_id_fkey(user_id,username,display_name,role)").order("created_at",{ascending:false}).limit(150);if(sme)throw Error("Could not load staff communications.");staffMessages=sm||[];}
+   return reply(200,{profile:actor,is_admin:isAdmin,products:products||[],assignments:assignments||[],tasks:tasksWithCreators,announcements:announcements||[],notifications:notifications||[],messages:messages||[],builds:builds||[],staff,staff_messages:staffMessages});
   }
   if(action==="assign-workstation"){
    requireAdmin();
@@ -237,6 +238,7 @@ Deno.serve(async(req:Request)=>{
    return reply(201,{message:"Product message added to the inbox.",record:data});
   }
   if(action==="send-staff-message"){
+   if(!isAdmin)await requireWorkstation("communication");
    const type=clean(b.message_type,20)||"chat",title=clean(b.title,160),body=clean(b.body,8000),priority=clean(b.priority,20)||"normal",due=clean(b.due_at,60)||null;
    if(!["chat","task"].includes(type)||body.length<1)return reply(400,{error:"Enter a message or task description."});
    if(type==="task"){requireAdmin();if(title.length<2||!["low","normal","high","urgent"].includes(priority))return reply(400,{error:"Company-wide tasks need a title and valid priority."});}
