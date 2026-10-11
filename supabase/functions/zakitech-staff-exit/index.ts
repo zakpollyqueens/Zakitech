@@ -54,8 +54,9 @@ Deno.serve(async(req:Request)=>{
   if(reqRow.status!=="pending")return reply(409,{error:"This request has already been reviewed."});
   if(!reqRow.requester_user_id)return reply(409,{error:"The staff account is already unavailable; this request needs manual review."});
   if(decision==="rejected"){
-   const {error}=await db.from("zt_staff_exit_requests").update({status:"rejected",admin_response:response,reviewed_by:actorId,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id).eq("status","pending");
+   const {data:rejectedRow,error}=await db.from("zt_staff_exit_requests").update({status:"rejected",admin_response:response,reviewed_by:actorId,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id).eq("status","pending").select("id").maybeSingle();
    if(error)return reply(500,{error:"Could not record the decision."});
+   if(!rejectedRow)return reply(409,{error:"Another administrator has already started reviewing this request."});
    await db.from("zt_audit_events").insert({actor_user_id:actorId,target_user_id:reqRow.requester_user_id,event_type:"staff_exit_rejected",details:{request_id:id,admin_response:response}});
    return reply(200,{message:"Request rejected. The staff account remains active and can continue using the workspace.",status:"rejected"});
   }
@@ -65,19 +66,23 @@ Deno.serve(async(req:Request)=>{
   if(targetError||!target)return reply(409,{error:"The staff profile no longer exists. This request needs manual review."});
   if(admins.includes(target.role))return reply(403,{error:"Administrator accounts cannot be removed through the staff departure workflow."});
   if(target.status!=="active")return reply(409,{error:"The staff account is not active; resolve its status before approving departure."});
+  const {data:claimed,error:claimError}=await db.from("zt_staff_exit_requests").update({status:"processing",updated_at:new Date().toISOString()}).eq("id",id).eq("status","pending").select("id").maybeSingle();
+  if(claimError)return reply(500,{error:"Could not claim this departure request for review."});
+  if(!claimed)return reply(409,{error:"Another administrator has already started reviewing this request."});
   const now=new Date().toISOString();
-  const {error:lockError}=await db.from("zt_profiles").update({status:"suspended",updated_at:now}).eq("user_id",targetId).eq("status","active");
-  if(lockError)return reply(500,{error:"Could not disable the account before departure."});
+  const {data:locked,error:lockError}=await db.from("zt_profiles").update({status:"suspended",updated_at:now}).eq("user_id",targetId).eq("status","active").select("user_id").maybeSingle();
+  if(lockError||!locked){await db.from("zt_staff_exit_requests").update({status:"pending",updated_at:new Date().toISOString()}).eq("id",id).eq("status","processing");return reply(500,{error:"Could not disable the account before departure."});}
   const {error:auditError}=await db.from("zt_audit_events").insert({actor_user_id:actorId,target_user_id:targetId,event_type:"staff_exit_approved",details:{request_id:id,requester_username:reqRow.requester_username,admin_response:response}});
-  if(auditError){await db.from("zt_profiles").update({status:"active",updated_at:new Date().toISOString()}).eq("user_id",targetId);return reply(500,{error:"Could not record the approval audit event; account was not deleted."})}
+  if(auditError){await db.from("zt_profiles").update({status:"active",updated_at:new Date().toISOString()}).eq("user_id",targetId);await db.from("zt_staff_exit_requests").update({status:"pending",updated_at:new Date().toISOString()}).eq("id",id).eq("status","processing");return reply(500,{error:"Could not record the approval audit event; account was not deleted."})}
   // The target profile is suspended before deletion, so profile-gated server endpoints deny any still-valid access token during teardown.
   const {error:deleteError}=await db.auth.admin.deleteUser(targetId);
   if(deleteError){
    await db.from("zt_profiles").update({status:"active",updated_at:new Date().toISOString()}).eq("user_id",targetId);
+   await db.from("zt_staff_exit_requests").update({status:"pending",updated_at:new Date().toISOString()}).eq("id",id).eq("status","processing");
    await db.from("zt_audit_events").insert({actor_user_id:actorId,target_user_id:targetId,event_type:"staff_exit_deletion_failed",details:{request_id:id,error:deleteError.message}});
-   return reply(500,{error:"Approval was recorded for audit, but account deletion failed. The account has been restored; please retry or contact support."});
+   return reply(500,{error:"Account deletion failed. The account has been restored and the request returned to pending; please retry or contact support."});
   }
-  const {error:finishError}=await db.from("zt_staff_exit_requests").update({requester_user_id:null,status:"approved",admin_response:response||"Approved by company administrator.",reviewed_by:actorId,reviewed_at:now,updated_at:now}).eq("id",id).eq("status","pending");
+  const {error:finishError}=await db.from("zt_staff_exit_requests").update({requester_user_id:null,status:"approved",admin_response:response||"Approved by company administrator.",reviewed_by:actorId,reviewed_at:now,updated_at:now}).eq("id",id).eq("status","processing");
   if(finishError)return reply(500,{error:"The account was deleted, but the request record could not be finalized. Contact the system owner with request ID "+id+"."});
   return reply(200,{message:"Departure approved. The staff account and authentication identity have been deleted; the person can no longer sign in with that account.",status:"approved"});
  }
