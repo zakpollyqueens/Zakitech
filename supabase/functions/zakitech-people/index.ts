@@ -293,7 +293,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{updates:items||[]});
   }
   if(action==="board-bootstrap"){
-   const isBoardAdmin=adminRoles.includes(actor.role);
+   const isBoardAdmin=isAdmin;
    const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,access_level,created_at,profile:zt_profiles(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
    if(membershipError)throw Error("Could not check board access.");
    if(!isBoardAdmin&&!membership)return reply(403,{error:"The Governance Board is restricted to administrators and explicitly authorized board members."});
