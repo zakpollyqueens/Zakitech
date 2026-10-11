@@ -1,7 +1,7 @@
 (()=>{"use strict";
 const RELEASE_API="https://api.github.com/repos/zakpollyqueens/Zakitech/releases/latest";
 const FALLBACK_APK="https://github.com/zakpollyqueens/Zakitech/releases/latest/download/ZakiTech.apk";
-const CURRENT_VERSION=window.ZAKITECH_BUILD_VERSION||"v0.1.0";
+const CURRENT_VERSION=window.ZAKITECH_BUILD_VERSION||"__ZAKITECH_BUILD_VERSION__";
 const $=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el};
 function mount(){
  if(document.getElementById("ztAppUpdateWidget"))return;
