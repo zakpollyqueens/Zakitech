@@ -6,7 +6,7 @@ A Zakmolanitech Solutions private company-management application.
 
 - Cyan-blue and deep-navy welcome/sign-in experience with a three-second animated welcome.
 - **Private, invitation-only accounts** — no public account-creation option in the interface.
-- Supabase Auth-backed username/email and password sign-in with persistent sessions.
+- Supabase Auth-backed assigned-username and password sign-in with persistent sessions while browser/app storage remains installed. After reinstalling, staff sign in again with their assigned username and password; their server-stored profile, permissions, and workspace data are loaded from the same account.
 - Backend checks account status before returning a sign-in session.
 - Protected workspace page with session validation and sign-out.
 - Role-aware staff-management screen for the owner and Vice Administrator.
@@ -61,3 +61,10 @@ Branch `feat/staff-onboarding-workstation-security` adds the initial server-side
 - The Appearance & Settings page includes passcode setup UI.
 
 This feature is not ready for production until the migration and Edge Function are deployed and tested. The actual workstation lock screen, unlock flow, administrator-controlled passcode reset, profile-image policy, and invitation/onboarding profile upload remain follow-up work. Do not treat a configured passcode as an application-wide lock until all protected workspace entry points enforce the lock state.
+
+
+## Reinstall and mobile security requirements
+
+- A reinstall clears device-local authentication/session data; the staff member signs in again with their assigned username and password. The account's profile, role, assignments, products, tasks, and other server-stored workspace data remain associated with the same Supabase user and are reloaded after successful sign-in.
+- The current repository is a browser-based web application; it does not yet contain a native Android/Capacitor project. Native fingerprint/face authentication, Android Keystore-backed credentials, and application-level lock/resume handling cannot be truthfully enabled by changing the website alone. These require a packaged native app and device testing.
+- The workstation passcode backend currently supplies setup/status/verification primitives only. Do not release it as an enforced app lock until the lock screen, unlock lifecycle, recovery, and all protected entry points are implemented and tested.
