@@ -51,3 +51,13 @@ Open `index.html` through a static web server. The Supabase project URL and publ
 ## Product direction
 
 ZakiTech is a separate company-management application. ZakiChat is one product that will eventually be represented in the ZakiTech Product Hub; it is not the ZakiTech codebase.
+
+## Workstation security rollout (in progress)
+
+Branch `feat/staff-onboarding-workstation-security` adds the initial server-side foundation for application workstation passcodes:
+
+- `supabase/migrations/20261011000000_zakitech_workstation_security.sql` creates a server-only credential table with row-level security and no direct client grants.
+- `supabase/functions/zakitech-workstation-security/index.ts` provides authenticated setup, status, and verification actions. It uses salted PBKDF2-SHA-256 verifiers, checks active account status, rate-limits failed attempts, and writes audit events.
+- The Appearance & Settings page includes passcode setup UI.
+
+This feature is not ready for production until the migration and Edge Function are deployed and tested. The actual workstation lock screen, unlock flow, administrator-controlled passcode reset, profile-image policy, and invitation/onboarding profile upload remain follow-up work. Do not treat a configured passcode as an application-wide lock until all protected workspace entry points enforce the lock state.
