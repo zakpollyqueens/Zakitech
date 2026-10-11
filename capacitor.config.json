@@ -1,0 +1,10 @@
+{
+  "appId": "com.zakmolanitech.zakitech",
+  "appName": "ZakiTech",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#06152b",
+  "android": {
+    "allowMixedContent": false
+  }
+}
