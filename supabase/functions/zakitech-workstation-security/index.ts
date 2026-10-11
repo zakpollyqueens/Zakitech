@@ -21,23 +21,26 @@ Deno.serve(async(req:Request)=>{
  if(profileError||!profile||profile.status!=="active")return reply(403,{error:"Your company account is not active."});
  let body:Record<string,unknown>;try{body=await req.json()}catch{return reply(400,{error:"Invalid request."})}
  const action=body.action;
- const {data:record,error:readError}=await admin.from("zt_workstation_credentials").select("passcode_salt,passcode_hash,failed_attempts,locked_until").eq("user_id",auth.user.id).maybeSingle();
+ const {data:record,error:readError}=await admin.from("zt_workstation_credentials").select("credential_type,passcode_salt,passcode_hash,failed_attempts,locked_until").eq("user_id",auth.user.id).maybeSingle();
  if(readError)return reply(500,{error:"Could not check workstation security."});
  if(action==="status")return reply(200,{configured:!!record,credentialType:record?.credential_type||null});
  if(action==="setup"){
   const passcode=typeof body.passcode==="string"?body.passcode:"";
-  if(!/^\d{4}$/.test(passcode))return reply(400,{error:"Choose exactly four digits."});
-  if(record)return reply(409,{error:"A workstation passcode is already configured. Use the reset process to replace it."});
+  const credentialType=body.credentialType==="password"?"password":"pin";
+  const validFormat=credentialType==="pin"?/^\d{4}$/.test(passcode):passcode.length>=8&&passcode.length<=128;
+  if(!validFormat)return reply(400,{error:credentialType==="pin"?"Choose exactly four digits.":"Choose a password between 8 and 128 characters."});
+  if(record)return reply(409,{error:"A workstation credential is already configured. Use the secure reset process to replace it."});
   const salt=crypto.getRandomValues(new Uint8Array(16)),hash=await derive(passcode,salt);
-  const {error}=await admin.from("zt_workstation_credentials").insert({user_id:auth.user.id,passcode_salt:b64(salt),passcode_hash:b64(hash),failed_attempts:0,locked_until:null});
-  if(error)return reply(500,{error:"Could not save the workstation passcode. Please try again."});
-  await admin.from("zt_audit_events").insert({actor_user_id:auth.user.id,target_user_id:auth.user.id,event_type:"workstation_passcode_created",details:{}});
-  return reply(200,{message:"Workstation passcode created."});
+  const {error}=await admin.from("zt_workstation_credentials").insert({user_id:auth.user.id,credential_type:credentialType,passcode_salt:b64(salt),passcode_hash:b64(hash),failed_attempts:0,locked_until:null});
+  if(error)return reply(500,{error:"Could not save the workstation credential. Please try again."});
+  await admin.from("zt_audit_events").insert({actor_user_id:auth.user.id,target_user_id:auth.user.id,event_type:"workstation_credential_created",details:{credential_type:credentialType}});
+  return reply(200,{message:"Workstation credential created.",credentialType});
  }
  if(action==="verify"){
   const passcode=typeof body.passcode==="string"?body.passcode:"";
-  if(!/^\d{4}$/.test(passcode))return reply(400,{error:"Enter your four-digit passcode."});
-  if(!record)return reply(409,{error:"Set up your workstation passcode in Settings before locking your workstation."});
+  if(!record)return reply(409,{error:"Set up a workstation credential in Settings before locking your workstation."});
+  const validFormat=record.credential_type==="password"?passcode.length>=1&&passcode.length<=128:/^\d{4}$/.test(passcode);
+  if(!validFormat)return reply(400,{error:record.credential_type==="password"?"Enter your workstation password.":"Enter your four-digit PIN."});
   if(record.locked_until&&new Date(record.locked_until).getTime()>Date.now())return reply(429,{error:"Too many incorrect attempts. Please wait before trying again.",locked_until:record.locked_until});
   const valid=equal(await derive(passcode,unb64(record.passcode_salt)),unb64(record.passcode_hash));
   if(!valid){
