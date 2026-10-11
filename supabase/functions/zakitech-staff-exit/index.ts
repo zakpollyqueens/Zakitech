@@ -70,8 +70,7 @@ Deno.serve(async(req:Request)=>{
   if(lockError)return reply(500,{error:"Could not disable the account before departure."});
   const {error:auditError}=await db.from("zt_audit_events").insert({actor_user_id:actorId,target_user_id:targetId,event_type:"staff_exit_approved",details:{request_id:id,requester_username:reqRow.requester_username,admin_response:response}});
   if(auditError){await db.from("zt_profiles").update({status:"active",updated_at:new Date().toISOString()}).eq("user_id",targetId);return reply(500,{error:"Could not record the approval audit event; account was not deleted."})}
-  const {error:revokeError}=await db.auth.admin.signOut(token,"global");
-  if(revokeError){await db.from("zt_profiles").update({status:"active",updated_at:new Date().toISOString()}).eq("user_id",targetId);return reply(500,{error:"Could not finalize session revocation; account was not deleted."})}
+  // The target profile is suspended before deletion, so profile-gated server endpoints deny any still-valid access token during teardown.
   const {error:deleteError}=await db.auth.admin.deleteUser(targetId);
   if(deleteError){
    await db.from("zt_profiles").update({status:"active",updated_at:new Date().toISOString()}).eq("user_id",targetId);
