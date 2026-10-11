@@ -31,7 +31,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -64,11 +63,11 @@ jobs:
             .toFile('assets/splash.png');
           NODE
 
-      - name: Generate Android launcher icons
-        run: npx capacitor-assets generate --android
-
       - name: Add Android platform
         run: npx cap add android
+
+      - name: Generate Android launcher icons
+        run: npx capacitor-assets generate --android
 
       - name: Sync bundled web app
         run: npx cap sync android
