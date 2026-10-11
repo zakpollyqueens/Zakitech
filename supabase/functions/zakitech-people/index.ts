@@ -31,7 +31,8 @@ Deno.serve(async(req:Request)=>{
   if(action==="my-access"){
    const {data:boardMember,error}=await db.from("zt_board_members").select("id,access_level,board_title").eq("user_id",uid).maybeSingle();
    if(error)throw Error("Could not verify your board access.");
-   return reply(200,{role:actor.role,is_admin:isAdmin,is_core_admin:adminRoles.includes(actor.role),full_workspace:hasFullWorkspace,is_board_member:!!boardMember,board_title:boardMember?.board_title||null,access_level:boardMember?.access_level||null});
+   const {data:grants,error:grantError}=await db.from("zt_workstation_assignments").select("workstation,product_id").eq("user_id",uid);if(grantError)throw Error("Could not verify workstation assignments.");
+   return reply(200,{role:actor.role,is_admin:isAdmin,is_core_admin:adminRoles.includes(actor.role),full_workspace:hasFullWorkspace,is_board_member:!!boardMember,board_title:boardMember?.board_title||null,access_level:boardMember?.access_level||null,workstations:grants||[]});
   }
   if(action==="search-staff"){
    if(!isAdmin)return reply(403,{error:"Staff search is restricted to administrators."});
