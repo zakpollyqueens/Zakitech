@@ -59,14 +59,14 @@ jobs:
           mkdir -p www/assets/js www/assets/css
           cp assets/js/app-updater.js www/assets/js/app-updater.js
           cp assets/css/app-updater.css www/assets/css/app-updater.css
-          if [ "$GITHUB_REF" = "refs/heads/main" ]; then BUILD_VERSION="v0.1.${GITHUB_RUN_NUMBER}"; else BUILD_VERSION="v0.1.0"; fi
+          BUILD_VERSION="v0.1.${GITHUB_RUN_NUMBER}"
           sed -i "s/__ZAKITECH_BUILD_VERSION__/${BUILD_VERSION}/g" www/assets/js/app-updater.js
           for page in www/*.html; do
-            sed -i 's#</head>#  <link rel="stylesheet" href="assets/css/app-updater.css">\n</head>#i' "$page"
-            sed -i 's#</body>#  <script src="assets/js/app-updater.js" defer></script>\n</body>#i' "$page"
+            sed -i 's#</head>#  <link rel="stylesheet" href="assets/css/app-updater.css">\\n</head>#i' "$page"
+            sed -i 's#</body>#  <script src="assets/js/app-updater.js" defer></script>\\n</body>#i' "$page"
           done
           # Bundle Supabase locally for Android WebView reliability; do not depend on a CDN at launch.
-          SUPABASE_UMD="$(find node_modules/@supabase/supabase-js -type f \( -name 'supabase.min.js' -o -name 'supabase.js' \) -path '*/umd/*' -print -quit)"
+          SUPABASE_UMD="$(find node_modules/@supabase/supabase-js -type f \\( -name 'supabase.min.js' -o -name 'supabase.js' \\) -path '*/umd/*' -print -quit)"
           if [ -z "$SUPABASE_UMD" ]; then
             echo "Could not find the Supabase UMD browser bundle in the installed package."
             exit 1
@@ -109,17 +109,15 @@ jobs:
           retention-days: 30
 
       - name: Prepare public APK asset
-        if: github.ref == 'refs/heads/main'
         run: cp android/app/build/outputs/apk/debug/app-debug.apk ZakiTech.apk
 
       - name: Publish APK to GitHub Releases
-        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.1.${{ github.run_number }}
           name: ZakiTech Android Release v0.1.${{ github.run_number }}
           body: |
-            ZakiTech Android release v0.1.${{ github.run_number }}.
+            ZakiTech Android build from branch ${{ github.ref_name }}.
 
             Note: this workflow currently produces a debug-signed APK for testing. Android may reject in-place updates if the APK signing certificate differs from the installed build. Production signing must be configured before reliable in-place updates can be guaranteed.
           files: ZakiTech.apk
