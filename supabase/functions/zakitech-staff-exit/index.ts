@@ -27,7 +27,7 @@ Deno.serve(async(req:Request)=>{
   if(isAdmin||actor.role==="owner"||actor.role==="vice_admin")return reply(403,{error:"Administrator departure must be handled directly by the company owner."});
   const letter=typeof body.letter==="string"?body.letter.trim():"";
   if(letter.length<30||letter.length>12000)return reply(400,{error:"Please write a letter of at least 30 characters and no more than 12,000 characters."});
-  const {data:existing,error:existingError}=await db.from("zt_staff_exit_requests").select("id").eq("requester_user_id",actorId).eq("status","pending").maybeSingle();
+  const {data:existing,error:existingError}=await db.from("zt_staff_exit_requests").select("id").eq("requester_user_id",actorId).in("status",["pending","processing"]).maybeSingle();
   if(existingError)return reply(500,{error:"Could not check your existing request."});
   if(existing)return reply(409,{error:"You already have a pending request. You can review its status below."});
   const {data:request,error}=await db.from("zt_staff_exit_requests").insert({requester_user_id:actorId,requester_username:actor.username,requester_display_name:actor.display_name,requester_role:actor.role,letter,status:"pending"}).select("id,status,created_at").single();
