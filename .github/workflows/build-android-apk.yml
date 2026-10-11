@@ -55,7 +55,12 @@ jobs:
           cp -R assets www/assets
           mkdir -p assets
           # Bundle Supabase locally for Android WebView reliability; do not depend on a CDN at launch.
-          cp node_modules/@supabase/supabase-js/dist/umd/supabase.min.js www/assets/js/supabase.min.js
+          SUPABASE_UMD="$(find node_modules/@supabase/supabase-js -type f \( -name 'supabase.min.js' -o -name 'supabase.js' \) -path '*/umd/*' -print -quit)"
+          if [ -z "$SUPABASE_UMD" ]; then
+            echo "Could not find the Supabase UMD browser bundle in the installed package."
+            exit 1
+          fi
+          cp "$SUPABASE_UMD" www/assets/js/supabase.min.js
           for page in www/*.html; do
             sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js#assets/js/supabase.min.js#g' "$page"
           done
