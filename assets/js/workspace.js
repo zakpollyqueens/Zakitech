@@ -180,11 +180,12 @@ form.addEventListener("submit",async e=>{
  finally{btn.disabled=false;btn.textContent="Create staff account ↗"}
 });
 document.getElementById("refreshStaff").addEventListener("click",loadStaff);
-signout.addEventListener("click",async()=>{signout.disabled=true;try{await client.auth.signOut()}finally{location.replace("index.html")}});
+signout.addEventListener("click",async()=>{signout.disabled=true;sessionStorage.removeItem("ztOverviewApproved");try{await client.auth.signOut()}finally{location.replace("index.html")}});
 async function start(){
- showView("dashboard");
  if(!client){say("Secure authentication is not configured.","error");return}
- const {data:{session}}=await client.auth.getSession();if(!session){location.replace("index.html");return}
+ const {data:{session}}=await client.auth.getSession();if(!session){sessionStorage.removeItem("ztOverviewApproved");location.replace("index.html");return}
+ if(sessionStorage.getItem("ztOverviewApproved")!=="1"){location.replace("zakitech-overview.html");return}
+ showView("dashboard");
  try{await loadProfile();await renderDirectory();if(["owner","vice_admin"].includes(profile.role)){section.hidden=false;if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}await loadStaff()}}
  catch(e){console.error(e);say(e.message||"Could not verify your session. Please sign in again.","error");if(/not active|expired|sign in again/i.test(e.message||"")){await client.auth.signOut();location.replace("index.html")}}
 }
