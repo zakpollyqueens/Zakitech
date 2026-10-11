@@ -273,7 +273,7 @@ Deno.serve(async(req:Request)=>{
    await requireCommunication();
    const isAdmin=adminRoles.includes(actor.role)||actor.full_access===true||hasFullWorkspace;
    const {data:boardMember}=await db.from("zt_board_members").select("id").eq("user_id",uid).maybeSingle();
-   let q=db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles(username,display_name))").order("starts_at",{ascending:true}).limit(200);
+   let q=db.from("zt_meetings").select("*,creator:zt_profiles!zt_meetings_created_by_fkey(username,display_name),rsvps:zt_meeting_rsvps(user_id,response,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name))").order("starts_at",{ascending:true}).limit(200);
    if(!isAdmin)q=q.in("audience",boardMember?["all_staff","board"]:["all_staff"]);
    const {data:meetings,error}=await q;
    if(error)throw Error("Could not load company meetings.");
@@ -308,13 +308,13 @@ Deno.serve(async(req:Request)=>{
   }
   if(action==="board-bootstrap"){
    const isBoardAdmin=isAdmin;
-   const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,access_level,created_at,profile:zt_profiles(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
+   const {data:membership,error:membershipError}=await db.from("zt_board_members").select("id,user_id,board_title,access_level,created_at,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name,role,status)").eq("user_id",uid).maybeSingle();
    if(membershipError)throw Error("Could not check board access.");
    if(!isBoardAdmin&&!membership)return reply(403,{error:"The Governance Board is restricted to administrators and explicitly authorized board members."});
    let q=db.from("zt_board_items").select("*,creator:zt_profiles!zt_board_items_created_by_fkey(username,display_name)").order("created_at",{ascending:false}).limit(200);
    if(!isBoardAdmin)q=q.eq("status","published");
    const {data:items,error}=await q;if(error)throw Error("Could not load board records.");
-   const members=isBoardAdmin?(await db.from("zt_board_members").select("id,user_id,board_title,created_at,profile:zt_profiles(username,display_name,role,status)").order("created_at",{ascending:false})).data||[]:[];
+   const members=isBoardAdmin?(await db.from("zt_board_members").select("id,user_id,board_title,created_at,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name,role,status)").order("created_at",{ascending:false})).data||[]:[];
    return reply(200,{items:items||[],members,is_admin:isBoardAdmin,is_board_member:!!membership});
   }
   if(action==="board-add-member"){
@@ -340,9 +340,9 @@ Deno.serve(async(req:Request)=>{
   }
   if(action==="board-shares-bootstrap"){
    requireAdmin();
-   const {data:rows,error}=await db.from("zt_board_share_register").select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles(username,display_name))").order("created_at",{ascending:false}).limit(500);
+   const {data:rows,error}=await db.from("zt_board_share_register").select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name))").order("created_at",{ascending:false}).limit(500);
    if(error)throw Error("Could not load the board share register.");
-   return reply(200,{shares:rows||[],members:(await db.from("zt_board_members").select("id,user_id,board_title,profile:zt_profiles(username,display_name)").order("created_at",{ascending:false})).data||[]});
+   return reply(200,{shares:rows||[],members:(await db.from("zt_board_members").select("id,user_id,board_title,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name)").order("created_at",{ascending:false})).data||[]});
   }
   if(action==="board-share-save"){
    requireAdmin();
@@ -352,7 +352,7 @@ Deno.serve(async(req:Request)=>{
    if(memberError||!member)return reply(404,{error:"Choose an authorized board member."});
    if(status==="issued"&&!/resolution\s*:/i.test(notes))return reply(400,{error:"Before marking shares as issued, add a formal board/company resolution reference in Notes using 'Resolution: …'."});
    const values={board_member_id:memberId,share_class:shareClass,share_quantity:quantity,price_per_share:price,currency,status,notes,updated_at:new Date().toISOString(),...(status==="issued"?{approved_by:uid}:{})};
-   const result=id?await db.from("zt_board_share_register").update(values).eq("id",id).select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles(username,display_name))").maybeSingle():await db.from("zt_board_share_register").insert({...values,created_by:uid}).select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles(username,display_name))").single();
+   const result=id?await db.from("zt_board_share_register").update(values).eq("id",id).select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name))").maybeSingle():await db.from("zt_board_share_register").insert({...values,created_by:uid}).select("*,member:zt_board_members(id,user_id,board_title,profile:zt_profiles!zt_board_members_user_id_fkey(username,display_name))").single();
    if(result.error||!result.data)throw Error("Could not save the share register record.");
    await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:member.user_id,event_type:"board_share_register_saved",details:{share_record_id:result.data.id,status,quantity,currency,price_per_share:price,share_class:shareClass}});
    return reply(200,{message:"Share register record saved. Formal issuance remains subject to company approvals and applicable law.",share:result.data});
