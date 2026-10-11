@@ -1,5 +1,6 @@
 (()=>{
 "use strict";
+for(const src of ["assets/js/workspace-preferences.js","assets/js/workspace-navigation.js"]){if(!document.querySelector('script[src="'+src+'"]')){const tag=document.createElement("script");tag.src=src;tag.async=false;document.head.append(tag)}}
 const client=window.ZakiTechSupabase;
 const msg=document.getElementById("pageMessage"),section=document.getElementById("staffSection"),list=document.getElementById("staffList"),form=document.getElementById("createStaffForm"),signout=document.getElementById("signOutButton");
 const profileForm=document.getElementById("profileForm"),emailForm=document.getElementById("emailForm"),passwordForm=document.getElementById("passwordForm");
