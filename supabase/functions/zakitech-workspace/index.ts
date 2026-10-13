@@ -47,7 +47,7 @@ Deno.serve(async(req:Request)=>{
    if(!isAdmin)assignmentsQuery=assignmentsQuery.eq("user_id",uid);
    const {data:assignments,error:ae}=await assignmentsQuery;
    if(ae)throw Error("Could not load your workstation assignments.");
-   let tasksQuery=db.from("zt_tasks").select("*,product:zt_products(id,name,slug),assignee:zt_profiles!zt_tasks_assigned_to_fkey(user_id,username,display_name)").order("created_at",{ascending:false}).limit(100);
+   let tasksQuery=db.from("zt_tasks").select("*,product:zt_products(id,name,slug),assignee:zt_profiles!zt_tasks_assigned_to_exit_fkey(user_id,username,display_name)").order("created_at",{ascending:false}).limit(100);
    if(!isAdmin)tasksQuery=tasksQuery.eq("assigned_to",uid);
    const {data:tasks,error:te}=await tasksQuery;if(te)throw Error("Could not load tasks and assignments.");
    const taskRows=tasks||[];
@@ -84,7 +84,7 @@ Deno.serve(async(req:Request)=>{
    if(isAdmin){const {data:s,error:se}=await db.from("zt_profiles").select("user_id,username,display_name,email,role,status,full_access").order("display_name");if(se)throw Error("Could not load staff list.");staff=s||[];}
    const communicationAccess=isAdmin||(assignments||[]).some((a:any)=>a.workstation==="communication"&&!a.product_id);
    let staffMessages:any[]=[];
-   if(communicationAccess){const {data:sm,error:sme}=await db.from("zt_staff_messages").select("*,sender:zt_profiles!zt_staff_messages_sender_id_fkey(user_id,username,display_name,role)").order("created_at",{ascending:false}).limit(150);if(sme)throw Error("Could not load staff communications.");staffMessages=sm||[];}
+   if(communicationAccess){const {data:sm,error:sme}=await db.from("zt_staff_messages").select("*,sender:zt_profiles!zt_staff_messages_sender_id_exit_fkey(user_id,username,display_name,role)").order("created_at",{ascending:false}).limit(150);if(sme)throw Error("Could not load staff communications.");staffMessages=sm||[];}
    return reply(200,{profile:actor,is_admin:isAdmin,products:products||[],assignments:assignments||[],tasks:tasksWithCreators,announcements:announcements||[],notifications:notifications||[],messages:messages||[],builds:builds||[],staff,staff_messages:staffMessages});
   }
   if(action==="assign-workstation"){
@@ -242,7 +242,7 @@ Deno.serve(async(req:Request)=>{
    const type=clean(b.message_type,20)||"chat",title=clean(b.title,160),body=clean(b.body,8000),priority=clean(b.priority,20)||"normal",due=clean(b.due_at,60)||null;
    if(!["chat","task"].includes(type)||body.length<1)return reply(400,{error:"Enter a message or task description."});
    if(type==="task"){requireAdmin();if(title.length<2||!["low","normal","high","urgent"].includes(priority))return reply(400,{error:"Company-wide tasks need a title and valid priority."});}
-   const {data,error}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:type,title:type==="task"?title:null,body,priority:type==="task"?priority:"normal",due_at:type==="task"?due:null,status:"open"}).select("*,sender:zt_profiles!zt_staff_messages_sender_id_fkey(user_id,username,display_name,role)").single();
+   const {data,error}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:type,title:type==="task"?title:null,body,priority:type==="task"?priority:"normal",due_at:type==="task"?due:null,status:"open"}).select("*,sender:zt_profiles!zt_staff_messages_sender_id_exit_fkey(user_id,username,display_name,role)").single();
    if(error)throw Error("Could not post to staff communications.");
    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:type==="task"?"staff_broadcast_task_created":"staff_chat_message_sent",details:{message_id:data.id,message_type:type,title:type==="task"?title:null}});
    return reply(201,{message:type==="task"?"Company-wide task posted to the staff group.":"Message sent to the staff group.",record:data});

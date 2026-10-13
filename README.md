@@ -70,3 +70,14 @@ The database migration and Edge Function have been deployed. The website lock sc
 - A reinstall clears device-local authentication/session data; the staff member signs in again with their assigned username and password. The account's profile, role, assignments, products, tasks, and other server-stored workspace data remain associated with the same Supabase user and are reloaded after successful sign-in.
 - The current repository is a browser-based web application; it does not yet contain a native Android/Capacitor project. Native fingerprint/face authentication, Android Keystore-backed credentials, and application-level lock/resume handling cannot be truthfully enabled by changing the website alone. These require a packaged native app and device testing.
 - The website currently has a PIN/password setup and a client-side lock/unlock screen. The current project does not include a native Android/Capacitor application, so fingerprint/face unlock and Android Keystore protection are not implemented. Those require a native app package, platform biometric APIs, and device testing before the mobile security requirement can be considered complete.
+
+
+## Branding and live workspace synchronization
+
+- The launcher/web app mark is the glossy **ZAK** icon in cyan blue, deep navy, and white.
+- Official company motto: **“Equipping minds with IT solutions.”**
+- Authenticated pages load `assets/js/live-sync.js` to show live connection status and listen on the private Supabase Broadcast topic `zt-live-workspace`.
+- Database triggers send only a generic change signal (table name and operation), not row contents. The channel is restricted by an RLS policy to active ZakiTech profiles. Pages refresh data through their existing workspace Edge Functions, preserving role checks; refreshes are deferred while a user is editing a form.
+- Trigger coverage includes profiles, products, workstation assignments, published build workflow, announcements, notifications, product messages, tasks, staff group messages, meetings, meeting RSVPs, and board items. Payroll, workstation credentials, audit events, direct staff messages, performance events, and exit requests are excluded from broadcast triggers.
+- When a device is offline, live delivery pauses; on reconnection or when the app is brought back into view, the client refreshes through the authenticated backend.
+- Native Android code does not silently self-install updates. A new Android build must be signed and distributed through an approved update channel; the existing workflow builds a debug test APK for testing.

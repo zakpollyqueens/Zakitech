@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feat/android-apk-build
+      - feat/zak-branding-live-refresh
     paths:
       - '**.html'
       - 'assets/**'
@@ -13,6 +14,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'capacitor.config.json'
+      - 'assets/js/app-updater.js'
+      - 'assets/css/app-updater.css'
       - '.github/workflows/build-android-apk.yml'
 
 permissions:
@@ -53,8 +56,22 @@ jobs:
           cp ./*.html ./manifest.json www/
           cp -R assets www/assets
           mkdir -p assets
+          mkdir -p www/assets/js www/assets/css
+          cp assets/js/app-updater.js www/assets/js/app-updater.js
+          cp assets/css/app-updater.css www/assets/css/app-updater.css
+          BUILD_VERSION="v0.1.${GITHUB_RUN_NUMBER}"
+          sed -i "s/__ZAKITECH_BUILD_VERSION__/${BUILD_VERSION}/g" www/assets/js/app-updater.js
+          for page in www/*.html; do
+            sed -i 's#</head>#  <link rel="stylesheet" href="assets/css/app-updater.css">\n</head>#i' "$page"
+            sed -i 's#</body>#  <script src="assets/js/app-updater.js" defer></script>\n</body>#i' "$page"
+          done
           # Bundle Supabase locally for Android WebView reliability; do not depend on a CDN at launch.
-          cp node_modules/@supabase/supabase-js/dist/umd/supabase.min.js www/assets/js/supabase.min.js
+          SUPABASE_UMD="$(find node_modules/@supabase/supabase-js -type f \( -name 'supabase.min.js' -o -name 'supabase.js' \) -path '*/umd/*' -print -quit)"
+          if [ -z "$SUPABASE_UMD" ]; then
+            echo "Could not find the Supabase UMD browser bundle in the installed package."
+            exit 1
+          fi
+          cp "$SUPABASE_UMD" www/assets/js/supabase.min.js
           for page in www/*.html; do
             sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js#assets/js/supabase.min.js#g' "$page"
           done
@@ -92,19 +109,17 @@ jobs:
           retention-days: 30
 
       - name: Prepare public APK asset
-        if: github.ref == 'refs/heads/main'
         run: cp android/app/build/outputs/apk/debug/app-debug.apk ZakiTech.apk
 
       - name: Publish APK to GitHub Releases
-        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0
-          name: ZakiTech Android Test Build v0.1.0
+          tag_name: v0.1.${{ github.run_number }}
+          name: ZakiTech Android Release v0.1.${{ github.run_number }}
           body: |
-            Initial ZakiTech Android test build for device testing.
+            ZakiTech Android build from branch ${{ github.ref_name }}.
 
-            This is a debug-signed test APK, not a production-signed release. Install only if you trust this test build. We will prepare a production-signed release after device testing.
+            Note: this workflow currently produces a debug-signed APK for testing. Android may reject in-place updates if the APK signing certificate differs from the installed build. Production signing must be configured before reliable in-place updates can be guaranteed.
           files: ZakiTech.apk
           draft: false
           prerelease: false
