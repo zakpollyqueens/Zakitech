@@ -2,8 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json"};
 const reply=(status:number,body:Record<string,unknown>)=>new Response(JSON.stringify(body),{status,headers:cors});
-type Role="owner"|"vice_admin"|"web_developer"|"application_developer"|"engineer"|"staff"|"product_manager"|"project_manager"|"qa_tester"|"ui_ux_designer"|"devops_engineer"|"release_manager"|"notifications_manager"|"announcements_manager"|"support_officer"|"operations_officer"|"security_officer"|"finance_officer";
-const roles:Role[]=["owner","vice_admin","web_developer","application_developer","engineer","staff","product_manager","project_manager","qa_tester","ui_ux_designer","devops_engineer","release_manager","notifications_manager","announcements_manager","support_officer","operations_officer","security_officer","finance_officer"];
+type Role="owner"|"vice_admin"|"receptionist"|"web_developer"|"application_developer"|"engineer"|"staff"|"product_manager"|"project_manager"|"qa_tester"|"ui_ux_designer"|"devops_engineer"|"release_manager"|"notifications_manager"|"announcements_manager"|"support_officer"|"operations_officer"|"security_officer"|"finance_officer";
+const roles:Role[]=["owner","vice_admin","receptionist","web_developer","application_developer","engineer","staff","product_manager","project_manager","qa_tester","ui_ux_designer","devops_engineer","release_manager","notifications_manager","announcements_manager","support_officer","operations_officer","security_officer","finance_officer"];
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return reply(405,{error:"Method not allowed."});
@@ -50,6 +50,41 @@ Deno.serve(async(req:Request)=>{
    staff.push({user_id:p.user_id,username:p.username,display_name:p.display_name,role:p.role,avatar_url});
   }
   return reply(200,{staff});
+ }
+ if(b.action==="create-staff-invite"||b.action==="list-staff-invites"||b.action==="revoke-staff-invite"){
+  const mayManage=["owner","vice_admin","receptionist"].includes(actor.role)||actor.full_access===true;
+  if(!mayManage)return reply(403,{error:"Only the CEO, Vice Administrator, or Receptionist can manage staff invitations."});
+  if(b.action==="list-staff-invites"){
+   const {data,error}=await admin.from("zt_staff_invites").select("id,username,display_name,role,status,created_at,expires_at,created_by").order("created_at",{ascending:false}).limit(200);
+   if(error)return reply(500,{error:"Could not load staff invitations."});
+   return reply(200,{invites:data||[]});
+  }
+  if(b.action==="revoke-staff-invite"){
+   const id=typeof b.id==="string"?b.id:"";
+   const {data,error}=await admin.from("zt_staff_invites").update({status:"revoked"}).eq("id",id).eq("status","pending").select("id").maybeSingle();
+   if(error||!data)return reply(404,{error:"Pending invitation not found."});
+   await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,event_type:"staff_invitation_revoked",details:{invite_id:id}});
+   return reply(200,{message:"Invitation revoked."});
+  }
+  const username=typeof b.username==="string"?b.username.trim().toLowerCase():"";
+  const display=typeof b.display_name==="string"?b.display_name.trim():"";
+  const role=typeof b.role==="string"?b.role as Role:"staff";
+  const fullAccess=b.full_access===true||b.full_access==="true";
+  if(!/^[a-z0-9._-]{3,32}$/.test(username)||display.length<2||display.length>100||!roles.includes(role)||["owner","vice_admin"].includes(role))return reply(400,{error:"Provide a valid username, display name, and staff role."});
+  if(role==="receptionist"&&actor.role!=="owner")return reply(403,{error:"Only the CEO can appoint a receptionist."});
+  if(fullAccess&&actor.role!=="owner")return reply(403,{error:"Only the CEO can grant full workspace access."});
+  const {data:existingProfile,error:profileLookup}=await admin.from("zt_profiles").select("user_id").ilike("username",username).maybeSingle();
+  const {data:existingInvite,error:inviteLookup}=await admin.from("zt_staff_invites").select("id").ilike("username",username).eq("status","pending").maybeSingle();
+  if(profileLookup||inviteLookup)return reply(500,{error:"Could not verify username availability."});
+  if(existingProfile||existingInvite)return reply(409,{error:"That username is already assigned or reserved by a pending invitation."});
+  const bytes=new Uint8Array(18);crypto.getRandomValues(bytes);
+  const voucher="ZTK-"+Array.from(bytes,x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
+  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(voucher));
+  const voucherHash=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,"0")).join("");
+  const {data:invite,error}=await admin.from("zt_staff_invites").insert({username,display_name:display,role,full_access:fullAccess,voucher_hash:voucherHash,created_by:ud.user.id}).select("id,username,display_name,role,expires_at").single();
+  if(error||!invite)return reply(500,{error:"Could not create the staff invitation."});
+  await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,event_type:"staff_invitation_created",details:{invite_id:invite.id,username,role,full_access:fullAccess}});
+  return reply(201,{message:"Staff invitation created. Share the private onboarding link and voucher with the intended staff member.",invite,voucher});
  }
  if(!["owner","vice_admin"].includes(actor.role)&&actor.full_access!==true)return reply(403,{error:"You do not have permission to manage staff."});
  if(b.action==="update-username"){
