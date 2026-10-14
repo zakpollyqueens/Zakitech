@@ -247,6 +247,18 @@ Deno.serve(async(req:Request)=>{
    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:type==="task"?"staff_broadcast_task_created":"staff_chat_message_sent",details:{message_id:data.id,message_type:type,title:type==="task"?title:null}});
    return reply(201,{message:type==="task"?"Company-wide task posted to the staff group.":"Message sent to the staff group.",record:data});
   }
+  if(action==="post-product-review"){
+   requireAdmin();
+   const productId=clean(b.product_id,80),title=clean(b.title,180),body=clean(b.body,5000),recognition=clean(b.recognition,2000);
+   if(!productId||title.length<3||body.length<5)return reply(400,{error:"Choose a product and provide a review heading and review."});
+   const {data:product,error:productError}=await db.from("zt_products").select("id,name,status,current_version").eq("id",productId).maybeSingle();
+   if(productError||!product)return reply(404,{error:"Product not found."});
+   const reviewBody="[PRODUCT_REVIEW]\n🏆 "+product.name+" — "+title+"\nStatus: "+product.status.replaceAll("_"," ")+" · Version: "+(product.current_version||"not set")+"\n\nReview: "+body+(recognition?"\n\nTeam congratulations: "+recognition:"");
+   const {data,error}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body:reviewBody,priority:"normal",due_at:null,status:"open"}).select("*,sender:zt_profiles!zt_staff_messages_sender_id_exit_fkey(user_id,username,display_name,role)").single();
+   if(error)throw Error("Could not publish the product review to the staff group.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_review_published",details:{product_id:product.id,product_name:product.name,title,recognition:!!recognition,message_id:data.id}});
+   return reply(201,{message:"Product review posted to the staff group.",record:data});
+  }
   if(action==="update-staff-task"){
    requireAdmin();
    const id=clean(b.id,80),status=clean(b.status,20);
