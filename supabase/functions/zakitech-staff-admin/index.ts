@@ -29,7 +29,7 @@ Deno.serve(async(req:Request)=>{
   if(avatarPath && (!avatarPath.startsWith(ud.user.id+"/") || avatarPath.includes("..") || avatarPath.length>300))return reply(400,{error:"Invalid profile image path."});
   const updates:{display_name:string;phone:string|null;address?:string|null;updated_at:string;avatar_path?:string|null;username?:string}={display_name:display,phone:phone||null,address:address||null,updated_at:new Date().toISOString()};
   if(avatarData){
-   const match=avatarData.match(/^data:(image\\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+   const match=avatarData.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
    if(!match)return reply(400,{error:"Choose a JPG, PNG or WebP profile photo."});
    const raw=atob(match[2]);if(raw.length>3*1024*1024)return reply(400,{error:"The profile photo must be no larger than 3 MB."});
    const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
