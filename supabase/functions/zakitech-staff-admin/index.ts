@@ -124,6 +124,19 @@ Deno.serve(async(req:Request)=>{
   await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,event_type:"staff_invitation_created",details:{invite_id:invite.id,username,role,full_access:fullAccess}});
   return reply(201,{message:"Staff invitation created. Share the private onboarding link and voucher with the intended staff member.",invite,voucher});
  }
+ if(b.action==="get-staff-details"){
+  if(!["owner","vice_admin","receptionist"].includes(actor.role)&&actor.full_access!==true)return reply(403,{error:"You do not have permission to view staff details."});
+  const id=typeof b.user_id==="string"?b.user_id:"";if(!id)return reply(400,{error:"Choose a staff account."});
+  const {data:p,error}=await admin.from("zt_profiles").select("user_id,username,email,display_name,legal_name,phone,address,role,status,full_access,created_by,created_at,avatar_path,onboarding_completed_at,identity_document_number,identity_document_path").eq("user_id",id).maybeSingle();
+  if(error||!p)return reply(404,{error:"Staff account not found."});
+  let avatar_url=null;if(p.avatar_path){const {data:signed}=await admin.storage.from("zt-profile-avatars").createSignedUrl(p.avatar_path,3600);avatar_url=signed?.signedUrl||null}
+  const {data:creator}=p.created_by?await admin.from("zt_profiles").select("username,display_name").eq("user_id",p.created_by).maybeSingle():{data:null};
+  const canViewIdentity=["owner","vice_admin"].includes(actor.role)||actor.full_access===true;
+  let identity_document_url=null;if(canViewIdentity&&p.identity_document_path){const {data:signed}=await admin.storage.from("zt-staff-documents").createSignedUrl(p.identity_document_path,300);identity_document_url=signed?.signedUrl||null}
+  const details:any={user_id:p.user_id,username:p.username,email:p.email,display_name:p.display_name,legal_name:p.legal_name,phone:p.phone,address:p.address,role:p.role,status:p.status,full_access:p.full_access,created_at:p.created_at,onboarding_completed_at:p.onboarding_completed_at,avatar_url,created_by_name:creator?.display_name||creator?.username||"Original system setup"};
+  if(canViewIdentity){details.identity_document_number=p.identity_document_number;details.identity_document_uploaded=!!p.identity_document_path;details.identity_document_url=identity_document_url}
+  return reply(200,{staff:details});
+ }
  if(!["owner","vice_admin"].includes(actor.role)&&actor.full_access!==true)return reply(403,{error:"You do not have permission to manage staff."});
  if(b.action==="update-username"){
   const id=typeof b.user_id==="string"?b.user_id:ud.user.id;
