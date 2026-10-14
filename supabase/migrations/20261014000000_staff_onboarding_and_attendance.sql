@@ -73,5 +73,9 @@ create index if not exists zt_attendance_date_idx on public.zt_attendance(work_d
 alter table public.zt_attendance enable row level security;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
+values ('zt-profile-avatars','zt-profile-avatars',false,3145728,array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public=false,file_size_limit=3145728,allowed_mime_types=array['image/jpeg','image/png','image/webp'];
+
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values ('zt-staff-documents','zt-staff-documents',false,5242880,array['application/pdf','image/jpeg','image/png','image/webp'])
 on conflict (id) do update set public=false,file_size_limit=5242880,allowed_mime_types=array['application/pdf','image/jpeg','image/png','image/webp'];
