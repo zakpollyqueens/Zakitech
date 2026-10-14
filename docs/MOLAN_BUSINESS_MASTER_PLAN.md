@@ -30,7 +30,8 @@ Molan Business should generalize these proven school workflows into a proper sch
 ### School module requirements
 
 **School setup and governance**
-- School profile, branding, campuses, academic year, terms, classes, streams, subjects, and grading rules.
+- School profile, branding, and a required school-level choice during setup: **Nursery, Primary, or Secondary**. The selected level must configure appropriate class/grade presets, subjects, timetables, assessment/reporting flows, age-appropriate navigation, and relevant permissions. Do not show secondary classes in a nursery/primary workspace or mix unrelated level workflows. A school may operate more than one level only when an authorized owner explicitly enables and configures each level.
+- Academic year, terms, streams, subjects, and grading rules must be configurable per school level and campus/branch.
 - School leadership and configurable departments.
 - **Staff Council:** council membership and roles; meeting calendar; agenda items; attendance; minutes; resolutions; voting where appropriate; action items; owners and due dates; supporting documents; follow-up status; searchable historical records. Restrict confidential council records to authorized members.
 - Optional school board/governor and parent/community committee workflows as separately configurable features.
@@ -96,7 +97,8 @@ Include “Other / custom organization” so a user is not blocked if their indu
 - Allow an authorized organization administrator to enable compatible optional modules later.
 - Provide templates for small, growing, multi-branch, and larger organizations where appropriate.
 - Allow a user to belong to multiple organizations under one account, with separate memberships and permissions per organization.
-- Support branches/campuses and configurable custom fields without weakening data integrity.
+- Support a parent organization with multiple branches/campuses, each with its own records, staff, stock, students/classes where applicable, orders, and reports. Authorized head-office owners may view consolidated reports; branch managers should be scoped to their assigned branch(es). Branches must inherit organization security policies but must not automatically expose every branch's sensitive records to every staff member.
+- Permit owners to add, rename, deactivate, and configure branches without deleting historical records. Support configurable custom fields without weakening data integrity.
 - Add new profiles/modules through a versioned registry and migrations rather than rebuilding unrelated profiles.
 
 ## 4. Shared platform modules
@@ -107,6 +109,7 @@ Include “Other / custom organization” so a user is not blocked if their indu
 - Finance foundation: invoices, receipts, income, expenses, balances, configurable tax settings, and financial periods.
 - File/document storage with size/type checks and scoped access.
 - Notifications, announcements, calendar, tasks, approvals, and activity/audit logs.
+- Internal workplace chat and group conversations scoped to the organization, branch, team, or project; role-aware announcements; owner/administrator-to-staff task assignment; task assignees, deadlines, priority, attachments, status, comments, and completion review. Users must only see conversations and tasks permitted by their membership and role.
 - Dashboards, reports, data import/export, and backups/restore procedures.
 - Localization: language, time zone, date/number formats, currency, and country settings.
 - Optional integrations with payment providers and other authorized ZakiTech products.
@@ -138,15 +141,26 @@ Every organization administrator should see:
 - Never store card credentials directly. Use the payment provider's hosted/secure payment flow and verified webhooks for subscription status.
 - Make renewals idempotent and audit payment state changes.
 
-### Subscription state and access policy
+### Mandatory one-month trial and subscription countdown
 
-Define explicit states: trial (if offered), active, payment_due, past_due, grace_period, suspended, cancelled, and expired. The grace period and read-only behavior must be configurable. Do not delete customer data just because a subscription expires. Provide clear export and reactivation policies and ensure lawful retention.
+- Every newly registered business/organization receives a **30-day introductory grace/trial period** before its first subscription payment is due, unless a later approved plan explicitly changes this policy.
+- Registration must clearly explain that payment will be required after the introductory period; it must not imply that the service is permanently free.
+- Every business profile should show the trial/subscription state, start date, exact trial-end date, remaining days (and hours when useful), plan, localized upcoming price, and renewal/payment instructions. Display reminders before the countdown reaches zero and clear notices at expiry.
+- Calculate the countdown from a trusted server timestamp and stored trial-end timestamp—not the device clock. Prevent users from extending the trial by changing device time, re-registering the same organization, replaying requests, or editing client-side data.
+- At the end of the 30 days, the system should require the applicable paid upgrade. Any read-only/restricted mode, reminder schedule, payment grace after trial, and exceptions must be explicit, configurable server-side, and communicated in advance. Never silently delete business data because the trial or subscription expires; preserve lawful export and reactivation paths.
+- Keep the baseline paid plan at **US$10 per organization per month**, with country-specific local price tables. The one-month introductory period is not a change to the paid baseline.
 
 ## 6. Security baseline
 
-Security is a launch requirement, not a later add-on.
+Security is a launch requirement, not a later add-on. Because Molan Business will hold sensitive business, financial, education, staff, customer, delivery, and potentially regulated records, security must be designed and tested before onboarding real customers.
 
 - Enforce organization-scoped authorization on the server/database, not only by hiding interface controls.
+- Model organization, branch, membership, and role boundaries explicitly; every query and file download must verify the active tenant and allowed branch on the server.
+- Use MFA for privileged owners/administrators where practical, secure account recovery, session/device revocation, rate limits, brute-force protection, and alerts for unusual privileged activity.
+- Encrypt traffic with TLS; rely on managed encryption at rest for database, backups, and storage; keep production secrets in managed secret storage and rotate credentials. Never put service-role keys, payment secrets, or signing keys in browser/mobile code or the repository.
+- Store private documents and attachments in non-public buckets, issue short-lived signed links only after authorization, scan/validate uploads, and enforce file size/type limits.
+- Maintain append-only security/audit events for sign-ins, permission changes, exports, billing changes, staff access, branch changes, and sensitive record access. Audit logs themselves must be protected from ordinary administrators editing history.
+- Define tested backup/restore, incident response, breach escalation, data export/deletion, and disaster-recovery procedures before production.
 - Use least-privilege role permissions and separate sensitive roles such as finance, HR, school safeguarding, council secretary, and system administration.
 - Apply row-level security or equivalent backend policies and test cross-tenant access explicitly.
 - Keep secrets and privileged service keys server-side only.
@@ -198,9 +212,12 @@ Authentication, organization creation, memberships, organization switcher, roles
 Thirty profile cards, search/filter, lightweight animated icons, adaptive setup forms, module registry, default roles, dashboard/navigation configuration, and “Other/custom” flow.
 
 ### Phase 3 — Three contrasting pilot modules
-1. Education, explicitly including Staff Council, attendance, academic reporting, report cards, staff operations, fees, and communications.
-2. Retail/inventory, including products, suppliers, purchasing, sales, returns, stock alerts, and reports.
+1. Education, explicitly including Nursery/Primary/Secondary-specific setup and workflows, Staff Council, attendance, academic reporting, report cards, staff operations, fees, branch/campus support, and communications.
+2. Retail/inventory, including products, suppliers, purchasing, sales, returns, stock alerts, branch-level stock, orders, deliveries, and reports.
 3. Technology company, including project registry, roles, assignments, product lifecycle, releases, technical documents, and authorized repository links.
+
+### Phase 3A — Orders, dispatch, and delivery tracking
+For profiles that sell or deliver goods/services, provide a customer-facing ordering flow and an authenticated business order-management workspace. Capture order lines, customer contact, delivery address/instructions, order status, payment status (verified separately from a customer claim), assigned delivery person, and delivery events. With customer consent, allow precise location sharing and show the delivery destination to authorized staff. Integrate Google Maps through approved APIs for destination display/navigation and, where supported, routing/ETA. Request location only when needed, explain it clearly, allow revocation, minimize retention, and never expose a customer's live location to unrelated staff or customers. Keep the provider/API key restricted and server-proxied where appropriate; verify current Maps billing, quotas, terms, and platform support before launch.
 
 ### Phase 4 — Finance, subscription, and localized billing
 Billing screen, local pricing table, payment provider integration, webhook verification, invoice history, renewal countdown, grace policy, and billing reports.
@@ -217,6 +234,11 @@ Only after the core product is stable and the AI data/privacy model has been rev
 ### Acceptance tests for every release
 - A user cannot read or modify another organization's data.
 - A school profile has the Staff Council and school workflows; a retail profile does not get forced into school workflows.
+- Nursery, Primary, and Secondary school setups produce the correct class lists, modules, grading/reporting rules, and staff/student workflows; no school level can be changed by an unauthorized user.
+- A parent organization can add multiple branches; staff cannot access another branch unless their permission explicitly allows it.
+- The 30-day trial countdown is server-calculated and consistent across devices; changing the device clock or replaying requests cannot extend it.
+- Orders and delivery location details are visible only to authorized order handlers/delivery staff, with customer consent and an auditable access trail.
+- Privileged actions, private files, exports, and cross-tenant/branch access attempts are tested and logged.
 - The same account can switch organizations without mixing data.
 - Role restrictions are enforced on direct backend requests.
 - Subscription price, currency, status, and renewal time agree with verified provider records.
@@ -241,6 +263,21 @@ Use these as feature-pattern references, not as products to copy:
 
 Before production, verify current provider country coverage, pricing, tax, legal, and regulatory requirements; documentation can change.
 
+## 13. Implementation order and first build gate
+
+Build in security-first increments rather than attempting to ship all 30 industries at once:
+
+1. **Foundation and threat model:** define tenant/branch boundaries, data classification, privileged roles, session lifecycle, audit events, backup/recovery, and cross-tenant threat tests.
+2. **Database and authorization:** versioned schema/migrations, tenant and branch foreign keys, row-level security, server-side permission checks, private storage policies, and automated negative authorization tests.
+3. **Organization onboarding:** create/select one of the 30 profiles, branch setup, school level selection where applicable, owner/administrator assignment, and organization switcher.
+4. **Shared workspace:** role-aware dashboards, staff invitations, chat, announcements, tasks, calendar, documents, and audit history.
+5. **Trial/subscription foundation:** server-generated 30-day trial, countdown, notices, plan display, local price configuration, payment verification, and expiry/recovery policy. Do not collect or trust payment status from the client.
+6. **Pilot profiles:** Education, Retail/Orders/Delivery, and Technology/IT, then expand profile-by-profile.
+7. **Production readiness:** security review, accessibility/performance checks, restore drill, payment test mode, privacy/legal review, and controlled beta before paid launch.
+
+### First build acceptance gate
+Do not onboard real customer data until automated tests demonstrate: cross-tenant and cross-branch isolation; least-privilege roles; secure file access; safe account recovery/session revocation; correct trial countdown; idempotent billing webhooks; reliable backups/restoration; and an auditable incident/support process.
+
 ## Current next action
 
-Finish and verify Molan Chat first. In parallel, this document establishes the Molan Business requirements baseline. The next implementation change in ZakiTech should add controlled Product Hub records for Molan Chat (with status evidence) and Molan Business (initially Planned / Architecture), without pretending the Product Hub UI or the business application is already implemented.
+Start Molan Business implementation from this updated requirements baseline, with the security/data model and tenant-isolation tests first. Treat Google Maps and payment provider choices as integration work requiring API setup, billing/terms review, and explicit secret management. Product Hub status in ZakiTech should reflect verified milestones only; do not mark Molan Business as launched until a tested release is actually available.
