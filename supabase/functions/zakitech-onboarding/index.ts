@@ -23,17 +23,17 @@ Deno.serve(async(req:Request)=>{
  const action=clean(b.action,40),voucher=clean(b.voucher,100).toUpperCase();
  if(!/^ZTK-[A-F0-9]{36}$/.test(voucher))return reply(400,{error:"Enter the complete invitation voucher from ZakiTech."});
  const voucherHash=await hash(voucher);
- const {data:invite,error:inviteError}=await db.from("zt_staff_invites").select("id,username,display_name,role,full_access,status,expires_at,created_by,workstations,product_id").eq("voucher_hash",voucherHash).maybeSingle();
+ const {data:invite,error:inviteError}=await db.from("zt_staff_invites").select("id,username,display_name,email,phone,role,full_access,status,expires_at,created_by,workstations,product_id").eq("voucher_hash",voucherHash).maybeSingle();
  if(inviteError)return reply(500,{error:"Could not verify this invitation."});
  if(!invite||invite.status!=="pending")return reply(404,{error:"This invitation is invalid, already used, or has been revoked."});
  if(new Date(invite.expires_at).getTime()<Date.now()){
   await db.from("zt_staff_invites").update({status:"expired"}).eq("id",invite.id).eq("status","pending");
   return reply(410,{error:"This invitation has expired. Ask the ZakiTech receptionist or administrator for a new one."});
  }
- if(action==="inspect-invite")return reply(200,{invite:{username:invite.username,display_name:invite.display_name,role:invite.role,expires_at:invite.expires_at,workstations:invite.workstations||[],product_id:invite.product_id}});
+ if(action==="inspect-invite")return reply(200,{invite:{username:invite.username,display_name:invite.display_name,email:invite.email,phone:invite.phone||"",role:invite.role,expires_at:invite.expires_at,workstations:invite.workstations||[],product_id:invite.product_id}});
  if(action!=="complete-onboarding")return reply(400,{error:"Unknown onboarding action."});
- const legalName=clean(b.legal_name,120),email=clean(b.email,254).toLowerCase(),phone=clean(b.phone,30),address=clean(b.address,500),identityNumber=clean(b.identity_document_number,100),password=typeof b.password==="string"?b.password:"",confirm=typeof b.confirm_password==="string"?b.confirm_password:"";
- if(legalName.length<2||!/^\S+@\S+\.\S+$/.test(email)||address.length<5||password.length<10||password!==confirm)return reply(400,{error:"Complete the required details. Your password must be at least 10 characters and both password fields must match."});
+ const legalName=clean(b.legal_name,120),submittedEmail=clean(b.email,254).toLowerCase(),email=clean(invite.email,254).toLowerCase(),phone=clean(b.phone,30),address=clean(b.address,500),identityNumber=clean(b.identity_document_number,100),password=typeof b.password==="string"?b.password:"",confirm=typeof b.confirm_password==="string"?b.confirm_password:"";
+ if(legalName.length<2||!/^\S+@\S+\.\S+$/.test(email)||submittedEmail!==email||address.length<5||password.length<10||password!==confirm)return reply(400,{error:"Complete the required details using the company-assigned email. Your password must be at least 10 characters and both password fields must match."});
  if(phone&&!/^[+0-9() .-]{6,30}$/.test(phone))return reply(400,{error:"Enter a valid phone number."});
  const avatarData=clean(b.avatar_data_url,5_000_000),documentData=clean(b.document_data_url,8_000_000),documentName=clean(b.document_name,120);
  if(!avatarData)return reply(400,{error:"Upload a profile photo to continue."});
