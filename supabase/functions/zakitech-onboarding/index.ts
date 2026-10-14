@@ -15,9 +15,10 @@ function decodeDataUrl(value:string,allowed:string[],maxBytes:number){
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return reply(405,{error:"Method not allowed."});
- const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
- if(!url||!key)return reply(503,{error:"Onboarding is not configured."});
+ const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),anonKey=Deno.env.get("SUPABASE_ANON_KEY");
+ if(!url||!key||!anonKey)return reply(503,{error:"Onboarding is not configured."});
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+ const authClient=createClient(url,anonKey,{auth:{persistSession:false,autoRefreshToken:false}});
  let b:Record<string,unknown>;try{b=await req.json()}catch{return reply(400,{error:"Invalid request."})}
  const action=clean(b.action,40),voucher=clean(b.voucher,100).toUpperCase();
  if(!/^ZTK-[A-F0-9]{36}$/.test(voucher))return reply(400,{error:"Enter the complete invitation voucher from ZakiTech."});
@@ -67,7 +68,7 @@ Deno.serve(async(req:Request)=>{
   profileSaved=true;
   await db.from("zt_staff_invites").update({claimed_user_id:userId}).eq("id",invite.id);
   await db.from("zt_audit_events").insert({actor_user_id:invite.created_by,target_user_id:userId,event_type:"staff_onboarding_completed",details:{invite_id:invite.id,username:invite.username,role:invite.role,identity_document_uploaded:!!doc,identity_number_provided:!!identityNumber,document_name:documentName||null}});
-  const {data:sessionData,error:sessionError}=await db.auth.signInWithPassword({email,password});
+  const {data:sessionData,error:sessionError}=await authClient.auth.signInWithPassword({email,password});
   if(sessionError||!sessionData.session)throw Error("Your account was created. Please sign in with your assigned username and password.");
   return reply(201,{message:"Welcome to ZakiTech. Your profile and assigned workspace are ready.",session:sessionData.session,profile:{username:invite.username,display_name:legalName,role:invite.role}});
  }catch(e){
