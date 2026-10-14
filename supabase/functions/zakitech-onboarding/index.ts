@@ -23,14 +23,14 @@ Deno.serve(async(req:Request)=>{
  const action=clean(b.action,40),voucher=clean(b.voucher,100).toUpperCase();
  if(!/^ZTK-[A-F0-9]{36}$/.test(voucher))return reply(400,{error:"Enter the complete invitation voucher from ZakiTech."});
  const voucherHash=await hash(voucher);
- const {data:invite,error:inviteError}=await db.from("zt_staff_invites").select("id,username,display_name,role,full_access,status,expires_at,created_by").eq("voucher_hash",voucherHash).maybeSingle();
+ const {data:invite,error:inviteError}=await db.from("zt_staff_invites").select("id,username,display_name,role,full_access,status,expires_at,created_by,workstations,product_id").eq("voucher_hash",voucherHash).maybeSingle();
  if(inviteError)return reply(500,{error:"Could not verify this invitation."});
  if(!invite||invite.status!=="pending")return reply(404,{error:"This invitation is invalid, already used, or has been revoked."});
  if(new Date(invite.expires_at).getTime()<Date.now()){
   await db.from("zt_staff_invites").update({status:"expired"}).eq("id",invite.id).eq("status","pending");
   return reply(410,{error:"This invitation has expired. Ask the ZakiTech receptionist or administrator for a new one."});
  }
- if(action==="inspect-invite")return reply(200,{invite:{username:invite.username,display_name:invite.display_name,role:invite.role,expires_at:invite.expires_at}});
+ if(action==="inspect-invite")return reply(200,{invite:{username:invite.username,display_name:invite.display_name,role:invite.role,expires_at:invite.expires_at,workstations:invite.workstations||[],product_id:invite.product_id}});
  if(action!=="complete-onboarding")return reply(400,{error:"Unknown onboarding action."});
  const legalName=clean(b.legal_name,120),email=clean(b.email,254).toLowerCase(),phone=clean(b.phone,30),address=clean(b.address,500),identityNumber=clean(b.identity_document_number,100),password=typeof b.password==="string"?b.password:"",confirm=typeof b.confirm_password==="string"?b.confirm_password:"";
  if(legalName.length<2||!/^\S+@\S+\.\S+$/.test(email)||address.length<5||password.length<10||password!==confirm)return reply(400,{error:"Complete the required details. Your password must be at least 10 characters and both password fields must match."});
@@ -65,6 +65,12 @@ Deno.serve(async(req:Request)=>{
    role:invite.role,full_access:invite.full_access,status:"active",must_change_password:false,created_by:invite.created_by,onboarding_completed_at:new Date().toISOString()
   });
   if(profileError)throw Error("Your account profile could not be saved. Please contact ZakiTech support.");
+  const selectedWorkstations=Array.isArray(invite.workstations)?invite.workstations.filter((x:unknown)=>typeof x==="string"):[];
+  if(selectedWorkstations.length){
+   const rows=selectedWorkstations.map((workstation:string)=>({user_id:userId,workstation,product_id:["product_development","release_management"].includes(workstation)?invite.product_id:null,assigned_by:invite.created_by}));
+   const {error:assignmentError}=await db.from("zt_workstation_assignments").insert(rows);
+   if(assignmentError)throw Error("Your account was created, but its assigned workspace access could not be set up. Please contact ZakiTech support.");
+  }
   profileSaved=true;
   await db.from("zt_staff_invites").update({claimed_user_id:userId}).eq("id",invite.id);
   await db.from("zt_audit_events").insert({actor_user_id:invite.created_by,target_user_id:userId,event_type:"staff_onboarding_completed",details:{invite_id:invite.id,username:invite.username,role:invite.role,identity_document_uploaded:!!doc,identity_number_provided:!!identityNumber,document_name:documentName||null}});
@@ -72,7 +78,7 @@ Deno.serve(async(req:Request)=>{
   if(sessionError||!sessionData.session)throw Error("Your account was created. Please sign in with your assigned username and password.");
   return reply(201,{message:"Welcome to ZakiTech. Your profile and assigned workspace are ready.",session:sessionData.session,profile:{username:invite.username,display_name:legalName,role:invite.role}});
  }catch(e){
-  if(userId&&!profileSaved){await db.storage.from("zt-profile-avatars").remove([userId+"/avatar.jpg",userId+"/avatar.png",userId+"/avatar.webp"]);await db.storage.from("zt-staff-documents").remove([userId+"/identity.pdf",userId+"/identity.jpg",userId+"/identity.png",userId+"/identity.webp"]);await db.auth.admin.deleteUser(userId);}
+  if(userId&&!profileSaved){await db.from("zt_workstation_assignments").delete().eq("user_id",userId);await db.from("zt_profiles").delete().eq("user_id",userId);await db.storage.from("zt-profile-avatars").remove([userId+"/avatar.jpg",userId+"/avatar.png",userId+"/avatar.webp"]);await db.storage.from("zt-staff-documents").remove([userId+"/identity.pdf",userId+"/identity.jpg",userId+"/identity.png",userId+"/identity.webp"]);await db.auth.admin.deleteUser(userId);}
   if(!profileSaved)await db.from("zt_staff_invites").update({status:"pending",claimed_at:null,claimed_user_id:null}).eq("id",invite.id).eq("status","claimed");
   return reply(400,{error:(e as Error).message||"Could not finish onboarding."});
  }
