@@ -54,6 +54,29 @@ Deno.serve(async(req:Request)=>{
  if(b.action==="create-staff-invite"||b.action==="list-staff-invites"||b.action==="revoke-staff-invite"){
   const mayManage=["owner","vice_admin","receptionist"].includes(actor.role)||actor.full_access===true;
   if(!mayManage)return reply(403,{error:"Only the CEO, Vice Administrator, or Receptionist can manage staff invitations."});
+  if(b.action==="list-available-usernames"){
+   const {data,error}=await admin.from("zt_username_pool").select("username").eq("status","available").order("username").limit(500);
+   if(error)return reply(500,{error:"Could not load available usernames."});
+   return reply(200,{usernames:(data||[]).map((x:any)=>x.username)});
+  }
+  if(b.action==="add-usernames"){
+   const raw=Array.isArray(b.usernames)?b.usernames:typeof b.usernames==="string"?b.usernames.split(/[\\s,;]+/):[];
+   const usernames=[...new Set(raw.map((x:unknown)=>typeof x==="string"?x.trim().toLowerCase():"").filter(Boolean))];
+   if(!usernames.length||usernames.length>300||usernames.some((x:string)=>!/^[a-z0-9._-]{3,32}$/.test(x)))return reply(400,{error:"Add between 1 and 300 valid usernames (3–32 letters, numbers, dots, underscores or hyphens)."});
+   const {data:profiles,error:pe}=await admin.from("zt_profiles").select("username").in("username",usernames);
+   if(pe)return reply(500,{error:"Could not check existing staff usernames."});
+   const {data:invites,error:ie}=await admin.from("zt_staff_invites").select("username").in("username",usernames).in("status",["pending","claimed"]);
+   if(ie)return reply(500,{error:"Could not check reserved usernames."});
+   const {data:pool,error:qe}=await admin.from("zt_username_pool").select("username").in("username",usernames);
+   if(qe)return reply(500,{error:"Could not check the username pool."});
+   const used=new Set([...(profiles||[]).map((x:any)=>x.username),...(invites||[]).map((x:any)=>x.username),...(pool||[]).map((x:any)=>x.username)]);
+   const available=usernames.filter((x:string)=>!used.has(x));
+   if(!available.length)return reply(409,{error:"None of those usernames are available. Check existing accounts and the username pool."});
+   const {error}=await admin.from("zt_username_pool").insert(available.map((username:string)=>({username,status:"available",created_by:ud.user.id})));
+   if(error)return reply(500,{error:"Could not add usernames to the available pool."});
+   await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,event_type:"staff_usernames_added_to_pool",details:{count:available.length,usernames:available}});
+   return reply(201,{message:available.length+" username(s) added to the available pool.",added:available,skipped:usernames.filter((x:string)=>!available.includes(x))});
+  }
   if(b.action==="list-staff-invites"){
    const {data,error}=await admin.from("zt_staff_invites").select("id,username,display_name,role,status,created_at,expires_at,created_by").order("created_at",{ascending:false}).limit(200);
    if(error)return reply(500,{error:"Could not load staff invitations."});
@@ -73,8 +96,11 @@ Deno.serve(async(req:Request)=>{
   if(!/^[a-z0-9._-]{3,32}$/.test(username)||display.length<2||display.length>100||!roles.includes(role)||["owner","vice_admin"].includes(role))return reply(400,{error:"Provide a valid username, display name, and staff role."});
   if(role==="receptionist"&&actor.role!=="owner")return reply(403,{error:"Only the CEO can appoint a receptionist."});
   if(fullAccess&&actor.role!=="owner")return reply(403,{error:"Only the CEO can grant full workspace access."});
+  const {data:poolName,error:poolNameError}=await admin.from("zt_username_pool").select("username,status").eq("username",username).maybeSingle();
+  if(poolNameError)return reply(500,{error:"Could not verify the username pool."});
+  if(!poolName||poolName.status!=="available")return reply(400,{error:"Choose a username from the available username pool first."});
   const {data:existingProfile,error:profileLookup}=await admin.from("zt_profiles").select("user_id").ilike("username",username).maybeSingle();
-  const {data:existingInvite,error:inviteLookup}=await admin.from("zt_staff_invites").select("id").ilike("username",username).eq("status","pending").maybeSingle();
+  const {data:existingInvite,error:inviteLookup}=await admin.from("zt_staff_invites").select("id").ilike("username",username).in("status",["pending","claimed"]).maybeSingle();
   if(profileLookup||inviteLookup)return reply(500,{error:"Could not verify username availability."});
   if(existingProfile||existingInvite)return reply(409,{error:"That username is already assigned or reserved by a pending invitation."});
   const bytes=new Uint8Array(18);crypto.getRandomValues(bytes);
@@ -83,6 +109,8 @@ Deno.serve(async(req:Request)=>{
   const voucherHash=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,"0")).join("");
   const {data:invite,error}=await admin.from("zt_staff_invites").insert({username,display_name:display,role,full_access:fullAccess,voucher_hash:voucherHash,created_by:ud.user.id}).select("id,username,display_name,role,expires_at").single();
   if(error||!invite)return reply(500,{error:"Could not create the staff invitation."});
+  const {error:poolUpdateError}=await admin.from("zt_username_pool").update({status:"assigned",assigned_invite_id:invite.id,assigned_at:new Date().toISOString()}).eq("username",username).eq("status","available");
+  if(poolUpdateError){await admin.from("zt_staff_invites").delete().eq("id",invite.id);return reply(500,{error:"Invitation could not reserve the selected username."})}
   await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,event_type:"staff_invitation_created",details:{invite_id:invite.id,username,role,full_access:fullAccess}});
   return reply(201,{message:"Staff invitation created. Share the private onboarding link and voucher with the intended staff member.",invite,voucher});
  }
