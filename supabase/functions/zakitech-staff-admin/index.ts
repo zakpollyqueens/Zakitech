@@ -14,18 +14,31 @@ Deno.serve(async(req:Request)=>{
  const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:ud,error:ue}=await admin.auth.getUser(token);
  if(ue||!ud.user)return reply(401,{error:"Your session is invalid. Sign in again."});
- const {data:actor,error:ae}=await admin.from("zt_profiles").select("user_id,role,status,full_access").eq("user_id",ud.user.id).maybeSingle();
+ const {data:actor,error:ae}=await admin.from("zt_profiles").select("user_id,role,status,full_access,avatar_path").eq("user_id",ud.user.id).maybeSingle();
  if(ae||!actor||actor.status!=="active")return reply(403,{error:"Your account is not active."});
  let b:Record<string,unknown>;try{b=await req.json()}catch{return reply(400,{error:"Invalid request."})}
  if(b.action==="update-profile"){
   const display=typeof b.display_name==="string"?b.display_name.trim():"";
   const phone=typeof b.phone==="string"?b.phone.trim():"";
+  const address=typeof b.address==="string"?b.address.trim():"";
   const avatarPath=typeof b.avatar_path==="string"?b.avatar_path.trim():"";
+  const avatarData=typeof b.avatar_data_url==="string"?b.avatar_data_url:"";
   if(display.length<2||display.length>100)return reply(400,{error:"Display name must be between 2 and 100 characters."});
   if(phone.length>30|| (phone && !/^[+0-9() .-]{6,30}$/.test(phone)))return reply(400,{error:"Enter a valid phone number."});
+  if(address.length>500||(address&&address.length<5))return reply(400,{error:"Enter a home address between 5 and 500 characters."});
   if(avatarPath && (!avatarPath.startsWith(ud.user.id+"/") || avatarPath.includes("..") || avatarPath.length>300))return reply(400,{error:"Invalid profile image path."});
-  const updates:{display_name:string;phone:string|null;updated_at:string;avatar_path?:string|null;username?:string}={display_name:display,phone:phone||null,updated_at:new Date().toISOString()};
-  if(Object.prototype.hasOwnProperty.call(b,"avatar_path"))updates.avatar_path=avatarPath||null;
+  const updates:{display_name:string;phone:string|null;address?:string|null;updated_at:string;avatar_path?:string|null;username?:string}={display_name:display,phone:phone||null,address:address||null,updated_at:new Date().toISOString()};
+  if(avatarData){
+   const match=avatarData.match(/^data:(image\\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+   if(!match)return reply(400,{error:"Choose a JPG, PNG or WebP profile photo."});
+   const raw=atob(match[2]);if(raw.length>3*1024*1024)return reply(400,{error:"The profile photo must be no larger than 3 MB."});
+   const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+   const ext=match[1]==="image/jpeg"?"jpg":match[1]==="image/png"?"png":"webp";
+   const path=ud.user.id+"/avatar."+ext;
+   const {error:uploadError}=await admin.storage.from("zt-profile-avatars").upload(path,bytes,{contentType:match[1],upsert:true});
+   if(uploadError)return reply(400,{error:"Could not save your profile photo. Please try again."});
+   updates.avatar_path=path;
+  }else if(Object.prototype.hasOwnProperty.call(b,"avatar_path"))updates.avatar_path=avatarPath||null;
   if(Object.prototype.hasOwnProperty.call(b,"username")){
    if(!["owner","vice_admin"].includes(actor.role))return reply(403,{error:"Only the CEO or an authorized administrator can change a login username."});
    const username=typeof b.username==="string"?b.username.trim().toLowerCase():"";
@@ -36,7 +49,8 @@ Deno.serve(async(req:Request)=>{
    updates.username=username;
   }
   const {error}=await admin.from("zt_profiles").update(updates).eq("user_id",ud.user.id);
-  if(error)return reply(400,{error:"Could not save your profile changes."});
+  if(error){if(avatarData&&updates.avatar_path)await admin.storage.from("zt-profile-avatars").remove([String(updates.avatar_path)]);return reply(400,{error:"Could not save your profile changes."});}
+  if(avatarData&&actor.avatar_path&&actor.avatar_path!==updates.avatar_path)await admin.storage.from("zt-profile-avatars").remove([actor.avatar_path]);
   if(updates.username){await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,target_user_id:ud.user.id,event_type:"username_changed",details:{username:updates.username}})}
   return reply(200,{message:updates.username?"Profile and login username updated successfully.":"Profile updated successfully."});
  }
