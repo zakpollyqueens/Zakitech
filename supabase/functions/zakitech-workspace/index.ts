@@ -7,6 +7,7 @@ type Workstation = "product_development"|"release_management"|"notifications"|"a
 const workstationNames:Workstation[]=["product_development","release_management","notifications","announcements","support_inbox","communication"];
 const adminRoles=["owner","vice_admin"];
 const clean=(v:unknown,max=5000)=>typeof v==="string"?v.trim().slice(0,max):"";
+const lifecycleLabel=(v:string)=>({planned:"Planned",in_development:"In development",in_review:"In review",paused:"Paused",launched:"Deployed",archived:"Archived"} as Record<string,string>)[v]||v.replaceAll("_"," ");
 function publicHttpsUrl(raw:string):URL{
  let url:URL;try{url=new URL(raw)}catch{throw new Error("Enter a valid live HTTPS deployment URL.")}
  if(url.protocol!=="https:"||url.username||url.password)throw new Error("Deployment verification requires a public HTTPS URL.");
@@ -303,22 +304,30 @@ Deno.serve(async(req:Request)=>{
    requireLeadership();
    const id=clean(b.id,80),status=clean(b.status,40),deploymentUrl=clean(b.deployment_url,500),version=clean(b.current_version,40);
    if(!id||!["planned","in_development","in_review","paused","launched"].includes(status))return reply(400,{error:"Choose a valid product and lifecycle status."});
-   if(status==="launched"&&(!deploymentUrl||!/^https?:\/\//i.test(deploymentUrl)))return reply(400,{error:"To record deployment, provide the live deployment URL (https://...)."});
-   const {data:old,error:oldError}=await db.from("zt_products").select("id,name,status,current_version,website_url").eq("id",id).maybeSingle();
+   const {data:old,error:oldError}=await db.from("zt_products").select("id,name,status,current_version,website_url,deployment_url,deployed_at,deployed_by").eq("id",id).maybeSingle();
    if(oldError||!old)return reply(404,{error:"Product not found."});
-   const changes:any={status,updated_at:new Date().toISOString()};
+   let verified:{url:string;httpStatus:number}|null=null;
+   if(status==="launched"){
+    if(!deploymentUrl)return reply(400,{error:"Enter the live HTTPS deployment URL before marking this product deployed."});
+    verified=await verifyLiveDeployment(deploymentUrl);
+   }
+   const now=new Date().toISOString(),changes:any={status,updated_at:now};
    if(version)changes.current_version=version;
-   if(status==="launched")changes.website_url=deploymentUrl;
+   if(verified){changes.deployment_url=verified.url;changes.deployed_at=now;changes.deployed_by=uid;if(!old.website_url)changes.website_url=verified.url;}
    const {data:product,error}=await db.from("zt_products").update(changes).eq("id",id).select().single();
    if(error||!product)throw Error("Could not record product lifecycle change.");
    const isDeploy=status==="launched";
    const body=isDeploy
-    ?"🚀 PRODUCT DEPLOYMENT RECORDED\n"+product.name+" has been marked deployed by ZakiTech leadership.\nLive URL: "+deploymentUrl+"\nVersion: "+(product.current_version||"not provided")+"\nThis is the deployment record submitted by the authorized administrator."
-    :"📣 PRODUCT STATUS UPDATE\n"+product.name+"\nPrevious status: "+old.status.replaceAll("_"," ")+"\nNew status: "+status.replaceAll("_"," ")+"\nThis lifecycle change was recorded in the Product Hub.";
+    ?"🚀 VERIFIED PRODUCT DEPLOYMENT\n"+product.name+" has been verified as publicly reachable and marked deployed by ZakiTech leadership.\nLive deployment URL: "+verified!.url+"\nHTTP verification: "+verified!.httpStatus+"\nVersion: "+(product.current_version||"not provided")+"\nVerified at: "+now
+    :"📣 PRODUCT STATUS UPDATE\n"+product.name+"\nPrevious status: "+lifecycleLabel(old.status)+"\nNew status: "+lifecycleLabel(status)+"\nThis lifecycle change was recorded in the Product Hub.";
    const {data:post,error:postError}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority:"normal",due_at:null,status:"open"}).select("id").single();
-   if(postError)throw Error("Lifecycle was saved, but the staff group announcement failed. Please retry posting the announcement.");
-   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:isDeploy?"product_deployment_recorded":"product_lifecycle_updated",details:{product_id:product.id,product_name:product.name,previous_status:old.status,new_status:status,deployment_url:isDeploy?deploymentUrl:null,version:product.current_version,staff_message_id:post.id}});
-   return reply(200,{message:isDeploy?"Deployment record saved and announced to the ZakiTech Group Chat.":"Product lifecycle updated and announced to the ZakiTech Group Chat.",product});
+   if(postError){
+    const {error:rollbackError}=await db.from("zt_products").update({status:old.status,current_version:old.current_version,website_url:old.website_url,deployment_url:old.deployment_url,deployed_at:old.deployed_at,deployed_by:old.deployed_by,updated_at:new Date().toISOString()}).eq("id",id);
+    if(rollbackError)throw Error("The product status changed but its group announcement failed, and automatic rollback failed. Please inspect the Product Hub before retrying.");
+    throw Error("The lifecycle change was rolled back because the staff group announcement could not be published. Please retry.");
+   }
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:isDeploy?"product_deployment_verified_and_recorded":"product_lifecycle_updated",details:{product_id:product.id,product_name:product.name,previous_status:old.status,new_status:status,deployment_url:isDeploy?verified!.url:null,http_status:isDeploy?verified!.httpStatus:null,version:product.current_version,staff_message_id:post.id}});
+   return reply(200,{message:isDeploy?"Live deployment verified, recorded and announced to the ZakiTech Group Chat.":"Product lifecycle updated and announced to the ZakiTech Group Chat.",product});
   }
   if(action==="post-product-review"){
    requireLeadership();
