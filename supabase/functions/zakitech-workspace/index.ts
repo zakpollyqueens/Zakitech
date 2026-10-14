@@ -314,6 +314,45 @@ Deno.serve(async(req:Request)=>{
    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"staff_broadcast_task_updated",details:{message_id:id,status}});
    return reply(200,{message:"Company-wide task updated."});
   }
+  if(action==="my-attendance"){
+   const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kampala",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+   const date=parts.find(x=>x.type==="year")!.value+"-"+parts.find(x=>x.type==="month")!.value+"-"+parts.find(x=>x.type==="day")!.value;
+   const {data,error}=await db.from("zt_attendance").select("*").eq("user_id",uid).eq("work_date",date).maybeSingle();
+   if(error)throw Error("Could not load your attendance record.");
+   return reply(200,{date,attendance:data||null});
+  }
+  if(action==="check-in"||action==="check-out"){
+   const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kampala",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+   const date=parts.find(x=>x.type==="year")!.value+"-"+parts.find(x=>x.type==="month")!.value+"-"+parts.find(x=>x.type==="day")!.value;
+   const note=clean(b.note,500);
+   if(action==="check-in"){
+    const {data:existing,error:lookupError}=await db.from("zt_attendance").select("id,status").eq("user_id",uid).eq("work_date",date).maybeSingle();
+    if(lookupError)throw Error("Could not check your attendance status.");
+    if(existing)return reply(409,{error:existing.status==="checked_in"?"You have already checked in today.":"Today's attendance has already been completed."});
+    const {data,error}=await db.from("zt_attendance").insert({user_id:uid,work_date:date,checkin_note:note||null,status:"checked_in"}).select().single();
+    if(error)throw Error("Could not record check-in. If you already checked in, refresh the page.");
+    await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:uid,event_type:"staff_checked_in",details:{attendance_id:data.id,work_date:date}});
+    return reply(201,{message:"Check-in recorded.",attendance:data});
+   }
+   const targetId=clean(b.user_id,80)||uid;
+   if(targetId!==uid&&!isAdmin&&actor.role!=="receptionist")return reply(403,{error:"You can only check out your own account."});
+   const {data:existing,error:lookupError}=await db.from("zt_attendance").select("*").eq("user_id",targetId).eq("work_date",date).maybeSingle();
+   if(lookupError||!existing)return reply(404,{error:"No check-in record was found for today."});
+   if(existing.status==="checked_out")return reply(409,{error:"This attendance record is already checked out."});
+   const {data,error}=await db.from("zt_attendance").update({checked_out_at:new Date().toISOString(),checkout_note:note||null,status:"checked_out",updated_at:new Date().toISOString()}).eq("id",existing.id).eq("status","checked_in").select().single();
+   if(error||!data)throw Error("Could not record check-out.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:targetId,event_type:"staff_checked_out",details:{attendance_id:data.id,work_date:date}});
+   return reply(200,{message:"Check-out recorded.",attendance:data});
+  }
+  if(action==="list-attendance"){
+   if(!isAdmin&&actor.role!=="receptionist")return reply(403,{error:"Attendance reports are available to the CEO, Vice Administrator, and Receptionist."});
+   const date=clean(b.date,10);
+   let query=db.from("zt_attendance").select("*,staff:zt_profiles!zt_attendance_user_id_fkey(user_id,username,display_name,role,avatar_path)").order("checked_in_at",{ascending:false}).limit(200);
+   if(date&&/^\\d{4}-\\d{2}-\\d{2}$/.test(date))query=query.eq("work_date",date);
+   const {data,error}=await query;if(error)throw Error("Could not load staff attendance.");
+   const records=await Promise.all((data||[]).map(async(row:any)=>{let avatar_url=null;if(row.staff?.avatar_path){const {data:signed}=await db.storage.from("zt-profile-avatars").createSignedUrl(row.staff.avatar_path,3600);avatar_url=signed?.signedUrl||null}return {...row,staff:row.staff?{...row.staff,avatar_url}:null}}));
+   return reply(200,{records});
+  }
   return reply(400,{error:"Unknown workspace action."});
  }catch(e){
   const err=e as Error & {status?:number};
