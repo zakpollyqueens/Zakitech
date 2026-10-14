@@ -7,6 +7,35 @@ type Workstation = "product_development"|"release_management"|"notifications"|"a
 const workstationNames:Workstation[]=["product_development","release_management","notifications","announcements","support_inbox","communication"];
 const adminRoles=["owner","vice_admin"];
 const clean=(v:unknown,max=5000)=>typeof v==="string"?v.trim().slice(0,max):"";
+function publicHttpsUrl(raw:string):URL{
+ let url:URL;try{url=new URL(raw)}catch{throw new Error("Enter a valid live HTTPS deployment URL.")}
+ if(url.protocol!=="https:"||url.username||url.password)throw new Error("Deployment verification requires a public HTTPS URL.");
+ const host=url.hostname.toLowerCase(),bare=host.replace(/^\\[|\\]$/g,"");
+ if(host==="localhost"||host.endsWith(".local")||host.endsWith(".internal")||host.endsWith(".localhost")||host==="metadata.google.internal")throw new Error("Private or local URLs cannot be recorded as public deployments.");
+ const parts=bare.match(/^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$/);
+ if(parts){const a=Number(parts[1]),b=Number(parts[2]);if(a===0||a===10||a===127||a>=224||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)||(a===100&&b>=64&&b<=127))throw new Error("Private network addresses cannot be recorded as public deployments.");}
+ if(bare==="::1"||bare.startsWith("fc")||bare.startsWith("fd")||bare.startsWith("fe80:"))throw new Error("Private network addresses cannot be recorded as public deployments.");
+ return url;
+}
+async function verifyLiveDeployment(raw:string){
+ let current=publicHttpsUrl(raw),response:Response|null=null,method:"HEAD"|"GET"="HEAD";
+ for(let attempt=0;attempt<5;attempt++){
+  try{response=await fetch(current.href,{method,redirect:"manual",headers:method==="GET"?{Range:"bytes=0-0"}:{},signal:AbortSignal.timeout(8000)})}
+  catch{throw new Error("The deployment URL could not be reached. Confirm the site is live and try again.")}
+  if([301,302,303,307,308].includes(response.status)){
+   const destination=response.headers.get("location");try{await response.body?.cancel()}catch{}
+   if(!destination)throw new Error("The deployment URL redirected without a destination.");
+   current=publicHttpsUrl(new URL(destination,current).href);continue;
+  }
+  if(method==="HEAD"&&(response.status===405||response.status===501)){
+   try{await response.body?.cancel()}catch{};method="GET";continue;
+  }
+  const status=response.status;try{await response.body?.cancel()}catch{}
+  if(status<200||status>=400)throw new Error("The deployment URL returned HTTP "+status+". Only a live, publicly reachable deployment can be announced.");
+  return {url:current.href,httpStatus:status};
+ }
+ throw new Error("The deployment URL redirected too many times to verify safely.");
+}
 
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
@@ -39,6 +68,7 @@ Deno.serve(async(req:Request)=>{
    return !!data?.length;
  };
  const requireAdmin=()=>{if(!isAdmin) throw Object.assign(Error("Only the CEO or Vice Administrator can perform this action."),{status:403})};
+ const requireLeadership=()=>{if(!adminRoles.includes(actor.role))throw Object.assign(Error("Only the CEO or Vice Administrator can manage Product Hub lifecycle and reviews."),{status:403})};
  const requireWorkstation=async(w:Workstation,pid?:string|null)=>{if(!await hasAccess(w,pid))throw Object.assign(Error("This workstation has not been assigned to your account."),{status:403})};
  const productExists=async(id:string)=>{const {data,error}=await db.from("zt_products").select("id").eq("id",id).maybeSingle();if(error||!data)throw Object.assign(Error("Product not found."),{status:404})};
  try{
@@ -123,7 +153,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{message:"Workstation access removed."});
   }
   if(action==="create-product"||action==="update-product"){
-   requireAdmin();
+   requireLeadership();
    const id=clean(b.id,80),name=clean(b.name,120),slug=clean(b.slug,80).toLowerCase(),description=clean(b.description,3000),repo=clean(b.repository_url,500),website=clean(b.website_url,500),adminUrl=clean(b.admin_center_url,500),version=clean(b.current_version,40),status=clean(b.status,40)||"planned";
    if(name.length<2||!/^[a-z0-9-]{2,80}$/.test(slug)||!["planned","in_development","in_review","launched","paused","archived"].includes(status))return reply(400,{error:"Provide a valid product name, slug and status."});
    const values={name,slug,description,repository_url:repo||null,website_url:website||null,admin_center_url:adminUrl||null,current_version:version||null,status,updated_at:new Date().toISOString()};
@@ -270,7 +300,7 @@ Deno.serve(async(req:Request)=>{
    return reply(201,{message:type==="task"?"Company-wide task posted to the staff group.":"Message sent to the staff group.",record:data});
   }
   if(action==="set-product-lifecycle"){
-   requireAdmin();
+   requireLeadership();
    const id=clean(b.id,80),status=clean(b.status,40),deploymentUrl=clean(b.deployment_url,500),version=clean(b.current_version,40);
    if(!id||!["planned","in_development","in_review","paused","launched"].includes(status))return reply(400,{error:"Choose a valid product and lifecycle status."});
    if(status==="launched"&&(!deploymentUrl||!/^https?:\/\//i.test(deploymentUrl)))return reply(400,{error:"To record deployment, provide the live deployment URL (https://...)."});
@@ -291,7 +321,7 @@ Deno.serve(async(req:Request)=>{
    return reply(200,{message:isDeploy?"Deployment record saved and announced to the ZakiTech Group Chat.":"Product lifecycle updated and announced to the ZakiTech Group Chat.",product});
   }
   if(action==="post-product-review"){
-   requireAdmin();
+   requireLeadership();
    const productId=clean(b.product_id,80),title=clean(b.title,180),body=clean(b.body,5000),recognition=clean(b.recognition,2000),staffIds=Array.isArray(b.staff_ids)?[...new Set(b.staff_ids.map((x:unknown)=>clean(x,80)).filter(Boolean))].slice(0,30):[];
    if(!productId||title.length<3||body.length<5)return reply(400,{error:"Choose a product and provide a review heading and review."});
    const {data:product,error:productError}=await db.from("zt_products").select("id,name,status,current_version").eq("id",productId).maybeSingle();
