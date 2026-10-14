@@ -334,12 +334,12 @@ Deno.serve(async(req:Request)=>{
   if(action==="post-product-review"){
    requireLeadership();
    const productId=clean(b.product_id,80),title=clean(b.title,180),body=clean(b.body,5000),recognition=clean(b.recognition,2000),staffIds=Array.isArray(b.staff_ids)?[...new Set(b.staff_ids.map((x:unknown)=>clean(x,80)).filter(Boolean))].slice(0,30):[];
-   if(!productId||title.length<3||body.length<5)return reply(400,{error:"Choose a product and provide a review heading and review."});
+   if(!productId||title.length<3||body.length<5||recognition.length<3||!staffIds.length)return reply(400,{error:"Choose a product, at least one responsible staff member, a review, and a congratulatory recognition note."});
    const {data:product,error:productError}=await db.from("zt_products").select("id,name,status,current_version").eq("id",productId).maybeSingle();
    if(productError||!product)return reply(404,{error:"Product not found."});
    let responsible:string[]=[];
    if(staffIds.length){const {data:people,error:peopleError}=await db.from("zt_profiles").select("user_id,display_name,username,status").in("user_id",staffIds);if(peopleError||!people||people.length!==staffIds.length||people.some((p:any)=>p.status!=="active"))return reply(400,{error:"Choose only active staff members that exist in the company directory."});responsible=people.map((p:any)=>(p.display_name||p.username)+" (@"+p.username+")");}
-   const reviewBody="[PRODUCT_REVIEW]\n🏆 "+product.name+" — "+title+"\nStatus: "+product.status.replaceAll("_"," ")+" · Version: "+(product.current_version||"not set")+"\n"+(responsible.length?"Recognized staff: "+responsible.join(", ")+"\n":"")+"\nReview: "+body+(recognition?"\n\n🎉 Team congratulations: "+recognition:"");
+   const reviewBody="[PRODUCT_REVIEW]\n🏆 "+product.name+" — "+title+"\nStatus: "+product.status.replaceAll("_"," ")+" · Version: "+(product.current_version||"not set")+"\n"+(responsible.length?"Recognized staff: "+responsible.join(", ")+"\n":"")+"\nReview: "+body+"\n\n🎉 Team congratulations: "+recognition;
    const {data,error}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body:reviewBody,priority:"normal",due_at:null,status:"open"}).select("*,sender:zt_profiles!zt_staff_messages_sender_id_exit_fkey(user_id,username,display_name,role)").single();
    if(error)throw Error("Could not publish the product review to the staff group.");
    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_review_published",details:{product_id:product.id,product_name:product.name,title,recognition:!!recognition,message_id:data.id}});
