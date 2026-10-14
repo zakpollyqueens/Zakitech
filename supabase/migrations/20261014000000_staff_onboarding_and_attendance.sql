@@ -33,6 +33,9 @@ create table if not exists public.zt_staff_invites (
   claimed_at timestamptz,
   created_at timestamptz not null default now()
 );
+alter table public.zt_staff_invites
+ add column if not exists workstations jsonb not null default '[]'::jsonb,
+ add column if not exists product_id uuid references public.zt_products(id) on delete set null;
 create index if not exists zt_staff_invites_status_created_idx on public.zt_staff_invites(status,created_at desc);
 alter table public.zt_staff_invites enable row level security;
 
@@ -45,6 +48,11 @@ create table if not exists public.zt_username_pool (
   assigned_at timestamptz
 );
 alter table public.zt_username_pool enable row level security;
+
+alter table public.zt_workstation_assignments drop constraint if exists zt_workstation_assignments_workstation_check;
+alter table public.zt_workstation_assignments add constraint zt_workstation_assignments_workstation_check check (
+ workstation = any (array['product_development','release_management','notifications','announcements','support_inbox','communication'])
+);
 
 create table if not exists public.zt_attendance (
  id uuid primary key default gen_random_uuid(),
