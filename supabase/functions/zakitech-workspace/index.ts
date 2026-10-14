@@ -81,7 +81,14 @@ Deno.serve(async(req:Request)=>{
    }
    const {data:builds,error:be}=await buildsQuery;if(be)throw Error("Could not load product builds.");
    let staff:any[]=[];
-   if(isAdmin){const {data:s,error:se}=await db.from("zt_profiles").select("user_id,username,display_name,email,role,status,full_access").order("display_name");if(se)throw Error("Could not load staff list.");staff=s||[];}
+   if(isAdmin||actor.role==="receptionist"){
+    const {data:s,error:se}=await db.from("zt_profiles").select("user_id,username,display_name,email,role,status,full_access,created_by,created_at,phone,avatar_path,onboarding_completed_at").order("display_name");
+    if(se)throw Error("Could not load staff list.");
+    const creatorIds=[...new Set((s||[]).map((p:any)=>p.created_by).filter(Boolean))];
+    const creators=new Map<string,any>();
+    if(creatorIds.length){const {data:rows}=await db.from("zt_profiles").select("user_id,username,display_name").in("user_id",creatorIds);for(const row of rows||[])creators.set(row.user_id,row)}
+    staff=await Promise.all((s||[]).map(async(p:any)=>{let avatar_url=null;if(p.avatar_path){const {data:signed}=await db.storage.from("zt-profile-avatars").createSignedUrl(p.avatar_path,3600);avatar_url=signed?.signedUrl||null}const creator=creators.get(p.created_by);return {...p,avatar_url,creator_username:creator?.username||null,creator_display_name:creator?.display_name||null}}));
+   }
    const communicationAccess=isAdmin||(assignments||[]).some((a:any)=>a.workstation==="communication"&&!a.product_id);
    let staffMessages:any[]=[];
    if(communicationAccess){const {data:sm,error:sme}=await db.from("zt_staff_messages").select("*,sender:zt_profiles!zt_staff_messages_sender_id_exit_fkey(user_id,username,display_name,role)").order("created_at",{ascending:false}).limit(150);if(sme)throw Error("Could not load staff communications.");staffMessages=sm||[];}
