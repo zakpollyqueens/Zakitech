@@ -16,7 +16,7 @@ alter table public.zt_profiles add constraint zt_profiles_role_check check (role
 
 create table if not exists public.zt_staff_invites (
   id uuid primary key default gen_random_uuid(),
-  username text not null unique check (username ~ '^[a-z0-9._-]{3,32}$'),
+  username text not null check (username ~ '^[a-z0-9._-]{3,32}$'),
   display_name text not null check (length(trim(display_name)) between 2 and 100),
   role text not null default 'staff' check (role = any (array[
     'staff','receptionist','web_developer','application_developer','engineer','product_manager',
@@ -36,6 +36,7 @@ create table if not exists public.zt_staff_invites (
 alter table public.zt_staff_invites
  add column if not exists workstations jsonb not null default '[]'::jsonb,
  add column if not exists product_id uuid references public.zt_products(id) on delete set null;
+create unique index if not exists zt_staff_invites_username_active_idx on public.zt_staff_invites(username) where status in ('pending','claimed');
 create index if not exists zt_staff_invites_status_created_idx on public.zt_staff_invites(status,created_at desc);
 alter table public.zt_staff_invites enable row level security;
 
