@@ -54,6 +54,12 @@ alter table public.zt_workstation_assignments drop constraint if exists zt_works
 alter table public.zt_workstation_assignments add constraint zt_workstation_assignments_workstation_check check (
  workstation = any (array['product_development','release_management','notifications','announcements','support_inbox','communication'])
 );
+alter table public.zt_workstation_assignments drop constraint if exists zt_workstation_product_scope;
+alter table public.zt_workstation_assignments add constraint zt_workstation_product_scope check (
+ ((workstation = any (array['product_development','release_management'])) and product_id is not null)
+ or
+ ((workstation = any (array['notifications','announcements','support_inbox','communication'])) and product_id is null)
+);
 
 create table if not exists public.zt_attendance (
  id uuid primary key default gen_random_uuid(),
