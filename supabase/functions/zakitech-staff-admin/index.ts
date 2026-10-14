@@ -97,6 +97,12 @@ Deno.serve(async(req:Request)=>{
   const display=typeof b.display_name==="string"?b.display_name.trim():"";
   const role=typeof b.role==="string"?b.role as Role:"staff";
   const fullAccess=b.full_access===true||b.full_access==="true";
+  const workstations=Array.isArray(b.workstations)?[...new Set(b.workstations.map((x:unknown)=>typeof x==="string"?x:"").filter(Boolean))]:[];
+  const productId=typeof b.product_id==="string"&&b.product_id.trim()?b.product_id.trim():null;
+  const allowedWorkstations=["product_development","release_management","notifications","announcements","support_inbox","communication"];
+  if(workstations.some((x:string)=>!allowedWorkstations.includes(x)))return reply(400,{error:"Choose only valid workstation areas."});
+  if(workstations.some((x:string)=>["product_development","release_management"].includes(x))&&!productId)return reply(400,{error:"Choose a product for product-development or release-management access."});
+  if(productId){const {data:product,error:productError}=await admin.from("zt_products").select("id").eq("id",productId).maybeSingle();if(productError||!product)return reply(400,{error:"The selected product does not exist."})}
   if(!/^[a-z0-9._-]{3,32}$/.test(username)||display.length<2||display.length>100||!roles.includes(role)||["owner","vice_admin"].includes(role))return reply(400,{error:"Provide a valid username, display name, and staff role."});
   if(role==="receptionist"&&actor.role!=="owner")return reply(403,{error:"Only the CEO can appoint a receptionist."});
   if(fullAccess&&actor.role!=="owner")return reply(403,{error:"Only the CEO can grant full workspace access."});
@@ -111,7 +117,7 @@ Deno.serve(async(req:Request)=>{
   const voucher="ZTK-"+Array.from(bytes,x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
   const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(voucher));
   const voucherHash=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,"0")).join("");
-  const {data:invite,error}=await admin.from("zt_staff_invites").insert({username,display_name:display,role,full_access:fullAccess,voucher_hash:voucherHash,created_by:ud.user.id}).select("id,username,display_name,role,expires_at").single();
+  const {data:invite,error}=await admin.from("zt_staff_invites").insert({username,display_name:display,role,full_access:fullAccess,workstations,product_id:productId,voucher_hash:voucherHash,created_by:ud.user.id}).select("id,username,display_name,role,workstations,product_id,expires_at").single();
   if(error||!invite)return reply(500,{error:"Could not create the staff invitation."});
   const {error:poolUpdateError}=await admin.from("zt_username_pool").update({status:"assigned",assigned_invite_id:invite.id,assigned_at:new Date().toISOString()}).eq("username",username).eq("status","available");
   if(poolUpdateError){await admin.from("zt_staff_invites").delete().eq("id",invite.id);return reply(500,{error:"Invitation could not reserve the selected username."})}
