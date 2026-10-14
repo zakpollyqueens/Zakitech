@@ -20,7 +20,7 @@ Deno.serve(async(req:Request)=>{
  const {data:authData,error:authError}=await db.auth.getUser(token);
  if(authError||!authData.user) return reply(401,{error:"Your session is invalid. Please sign in again."});
  const uid=authData.user.id;
- const {data:actor,error:profileError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status,full_access,avatar_path,phone,address,legal_name,onboarding_completed_at").eq("user_id",uid).maybeSingle();
+ const {data:actor,error:profileError}=await db.from("zt_profiles").select("user_id,username,email,display_name,role,status,full_access,avatar_path,phone,address,legal_name,onboarding_completed_at").eq("user_id",uid).maybeSingle();
  if(profileError||!actor||actor.status!=="active") return reply(403,{error:"Your ZakiTech account is not active."});
  let actorAvatarUrl=null;if(actor.avatar_path){const {data:signed}=await db.storage.from("zt-profile-avatars").createSignedUrl(actor.avatar_path,3600);actorAvatarUrl=signed?.signedUrl||null}
  const actorProfile={...actor,avatar_url:actorAvatarUrl};
