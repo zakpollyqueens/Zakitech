@@ -20,8 +20,10 @@ Deno.serve(async(req:Request)=>{
  const {data:authData,error:authError}=await db.auth.getUser(token);
  if(authError||!authData.user) return reply(401,{error:"Your session is invalid. Please sign in again."});
  const uid=authData.user.id;
- const {data:actor,error:profileError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status,full_access").eq("user_id",uid).maybeSingle();
+ const {data:actor,error:profileError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status,full_access,avatar_path,phone,address,legal_name,onboarding_completed_at").eq("user_id",uid).maybeSingle();
  if(profileError||!actor||actor.status!=="active") return reply(403,{error:"Your ZakiTech account is not active."});
+ let actorAvatarUrl=null;if(actor.avatar_path){const {data:signed}=await db.storage.from("zt-profile-avatars").createSignedUrl(actor.avatar_path,3600);actorAvatarUrl=signed?.signedUrl||null}
+ const actorProfile={...actor,avatar_url:actorAvatarUrl};
  const {data:workspaceBoardGrant}=await db.from("zt_board_members").select("access_level").eq("user_id",uid).maybeSingle();
  const hasFullWorkspace=workspaceBoardGrant?.access_level==="full_workspace";
  const isAdmin=adminRoles.includes(actor.role)||hasFullWorkspace||actor.full_access===true;
@@ -92,7 +94,7 @@ Deno.serve(async(req:Request)=>{
    const communicationAccess=isAdmin||(assignments||[]).some((a:any)=>a.workstation==="communication"&&!a.product_id);
    let staffMessages:any[]=[];
    if(communicationAccess){const {data:sm,error:sme}=await db.from("zt_staff_messages").select("*,sender:zt_profiles!zt_staff_messages_sender_id_exit_fkey(user_id,username,display_name,role)").order("created_at",{ascending:false}).limit(150);if(sme)throw Error("Could not load staff communications.");staffMessages=sm||[];}
-   return reply(200,{profile:actor,is_admin:isAdmin,products:products||[],assignments:assignments||[],tasks:tasksWithCreators,announcements:announcements||[],notifications:notifications||[],messages:messages||[],builds:builds||[],staff,staff_messages:staffMessages});
+   return reply(200,{profile:actorProfile,is_admin:isAdmin,products:products||[],assignments:assignments||[],tasks:tasksWithCreators,announcements:announcements||[],notifications:notifications||[],messages:messages||[],builds:builds||[],staff,staff_messages:staffMessages});
   }
   if(action==="assign-workstation"){
    requireAdmin();
