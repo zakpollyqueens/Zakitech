@@ -51,7 +51,7 @@ Deno.serve(async(req:Request)=>{
   }
   return reply(200,{staff});
  }
- if(b.action==="create-staff-invite"||b.action==="list-staff-invites"||b.action==="revoke-staff-invite"){
+ if(b.action==="create-staff-invite"||b.action==="list-staff-invites"||b.action==="revoke-staff-invite"||b.action==="list-available-usernames"||b.action==="add-usernames"){
   const mayManage=["owner","vice_admin","receptionist"].includes(actor.role)||actor.full_access===true;
   if(!mayManage)return reply(403,{error:"Only the CEO, Vice Administrator, or Receptionist can manage staff invitations."});
   if(b.action==="list-available-usernames"){
