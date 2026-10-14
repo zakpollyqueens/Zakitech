@@ -81,7 +81,7 @@ Deno.serve(async(req:Request)=>{
    return reply(201,{message:available.length+" username(s) added to the available pool.",added:available,skipped:usernames.filter((x:string)=>!available.includes(x))});
   }
   if(b.action==="list-staff-invites"){
-   const {data,error}=await admin.from("zt_staff_invites").select("id,username,display_name,role,status,created_at,expires_at,created_by").order("created_at",{ascending:false}).limit(200);
+   const {data,error}=await admin.from("zt_staff_invites").select("id,username,display_name,email,phone,role,status,created_at,expires_at,created_by").order("created_at",{ascending:false}).limit(200);
    if(error)return reply(500,{error:"Could not load staff invitations."});
    return reply(200,{invites:data||[]});
   }
@@ -95,7 +95,17 @@ Deno.serve(async(req:Request)=>{
   }
   const username=typeof b.username==="string"?b.username.trim().toLowerCase():"";
   const display=typeof b.display_name==="string"?b.display_name.trim():"";
+  const email=typeof b.email==="string"?b.email.trim().toLowerCase():"";
+  const phone=typeof b.phone==="string"?b.phone.trim():"";
   const role=typeof b.role==="string"?b.role as Role:"staff";
+  if(!/^\\S+@\\S+\\.\\S+$/.test(email))return reply(400,{error:"Enter the staff member's assigned email address."});
+  if(phone.length>30||(phone&&!/^[+0-9() .-]{6,30}$/.test(phone)))return reply(400,{error:"Enter a valid staff phone number."});
+  const {data:emailUsed,error:emailLookupError}=await admin.from("zt_profiles").select("user_id").ilike("email",email).maybeSingle();
+  if(emailLookupError)return reply(500,{error:"Could not verify the assigned email address."});
+  if(emailUsed)return reply(409,{error:"That email is already linked to a ZakiTech account."});
+  const {data:emailInvite,error:emailInviteError}=await admin.from("zt_staff_invites").select("id").ilike("email",email).eq("status","pending").maybeSingle();
+  if(emailInviteError)return reply(500,{error:"Could not verify pending staff invitations."});
+  if(emailInvite)return reply(409,{error:"That email is already reserved by another pending staff invitation."});
   const fullAccess=b.full_access===true||b.full_access==="true";
   const workstations=Array.isArray(b.workstations)?[...new Set(b.workstations.map((x:unknown)=>typeof x==="string"?x:"").filter(Boolean))]:[];
   const productId=typeof b.product_id==="string"&&b.product_id.trim()?b.product_id.trim():null;
@@ -117,7 +127,7 @@ Deno.serve(async(req:Request)=>{
   const voucher="ZTK-"+Array.from(bytes,x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
   const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(voucher));
   const voucherHash=Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,"0")).join("");
-  const {data:invite,error}=await admin.from("zt_staff_invites").insert({username,display_name:display,role,full_access:fullAccess,workstations,product_id:productId,voucher_hash:voucherHash,created_by:ud.user.id}).select("id,username,display_name,role,workstations,product_id,expires_at").single();
+  const {data:invite,error}=await admin.from("zt_staff_invites").insert({username,display_name:display,email,phone:phone||null,role,full_access:fullAccess,workstations,product_id:productId,voucher_hash:voucherHash,created_by:ud.user.id}).select("id,username,display_name,email,phone,role,workstations,product_id,expires_at").single();
   if(error||!invite)return reply(500,{error:"Could not create the staff invitation."});
   const {error:poolUpdateError}=await admin.from("zt_username_pool").update({status:"assigned",assigned_invite_id:invite.id,assigned_at:new Date().toISOString()}).eq("username",username).eq("status","available");
   if(poolUpdateError){await admin.from("zt_staff_invites").delete().eq("id",invite.id);return reply(500,{error:"Invitation could not reserve the selected username."})}
