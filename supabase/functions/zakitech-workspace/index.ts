@@ -118,9 +118,22 @@ Deno.serve(async(req:Request)=>{
    const id=clean(b.id,80),name=clean(b.name,120),slug=clean(b.slug,80).toLowerCase(),description=clean(b.description,3000),repo=clean(b.repository_url,500),website=clean(b.website_url,500),adminUrl=clean(b.admin_center_url,500),version=clean(b.current_version,40),status=clean(b.status,40)||"planned";
    if(name.length<2||!/^[a-z0-9-]{2,80}$/.test(slug)||!["planned","in_development","in_review","launched","paused","archived"].includes(status))return reply(400,{error:"Provide a valid product name, slug and status."});
    const values={name,slug,description,repository_url:repo||null,website_url:website||null,admin_center_url:adminUrl||null,current_version:version||null,status,updated_at:new Date().toISOString()};
+   const previous=action==="update-product"?await db.from("zt_products").select("id,name,status,current_version").eq("id",id).maybeSingle():{data:null,error:null};
+   if(action==="update-product"&&(!previous.data||previous.error))return reply(404,{error:"Product not found."});
    const result=action==="create-product"?await db.from("zt_products").insert({...values,created_by:uid}).select().single():await db.from("zt_products").update(values).eq("id",id).select().single();
-   if(result.error)throw Error("Could not save product. Check that its slug is unique.");
-   return reply(200,{message:"Product saved.",product:result.data});
+   if(result.error||!result.data)throw Error("Could not save product. Check that its slug is unique.");
+   if(action==="create-product"){
+    const body="🆕 PRODUCT CREATED\n"+result.data.name+" has been registered in the ZakiTech Product Hub.\nLifecycle: "+status.replaceAll("_"," ")+"\n"+(version?"Version: "+version+"\n":"")+"The team can now follow its assignments and progress in the Product Hub.";
+    const {error:postError}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority:"normal",due_at:null,status:"open"});
+    if(postError)throw Error("Product was saved, but the creation announcement could not be posted.");
+    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_created_and_announced",details:{product_id:result.data.id,product_name:name,status}});
+   }else if(previous.data.status!==status){
+    const body="📣 PRODUCT STATUS UPDATE\n"+result.data.name+"\nPrevious status: "+previous.data.status.replaceAll("_"," ")+"\nNew status: "+status.replaceAll("_"," ")+"\n"+(version?"Version: "+version+"\n":"")+"This lifecycle change was recorded by ZakiTech leadership in the Product Hub.";
+    const {error:postError}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority:"normal",due_at:null,status:"open"});
+    if(postError)throw Error("Product status was saved, but its group announcement could not be posted.");
+    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_status_changed_and_announced",details:{product_id:result.data.id,product_name:name,previous_status:previous.data.status,new_status:status}});
+   }
+   return reply(200,{message:action==="create-product"?"Product created and announced to the staff group.":"Product saved.",product:result.data});
   }
   if(action==="create-task"){
    requireAdmin();
@@ -247,13 +260,36 @@ Deno.serve(async(req:Request)=>{
    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:type==="task"?"staff_broadcast_task_created":"staff_chat_message_sent",details:{message_id:data.id,message_type:type,title:type==="task"?title:null}});
    return reply(201,{message:type==="task"?"Company-wide task posted to the staff group.":"Message sent to the staff group.",record:data});
   }
+  if(action==="set-product-lifecycle"){
+   requireAdmin();
+   const id=clean(b.id,80),status=clean(b.status,40),deploymentUrl=clean(b.deployment_url,500),version=clean(b.current_version,40);
+   if(!id||!["planned","in_development","in_review","paused","launched"].includes(status))return reply(400,{error:"Choose a valid product and lifecycle status."});
+   if(status==="launched"&&(!deploymentUrl||!/^https?:\/\//i.test(deploymentUrl)))return reply(400,{error:"To record deployment, provide the live deployment URL (https://...)."});
+   const {data:old,error:oldError}=await db.from("zt_products").select("id,name,status,current_version,website_url").eq("id",id).maybeSingle();
+   if(oldError||!old)return reply(404,{error:"Product not found."});
+   const changes:any={status,updated_at:new Date().toISOString()};
+   if(version)changes.current_version=version;
+   if(status==="launched")changes.website_url=deploymentUrl;
+   const {data:product,error}=await db.from("zt_products").update(changes).eq("id",id).select().single();
+   if(error||!product)throw Error("Could not record product lifecycle change.");
+   const isDeploy=status==="launched";
+   const body=isDeploy
+    ?"🚀 PRODUCT DEPLOYMENT RECORDED\n"+product.name+" has been marked deployed by ZakiTech leadership.\nLive URL: "+deploymentUrl+"\nVersion: "+(product.current_version||"not provided")+"\nThis is the deployment record submitted by the authorized administrator."
+    :"📣 PRODUCT STATUS UPDATE\n"+product.name+"\nPrevious status: "+old.status.replaceAll("_"," ")+"\nNew status: "+status.replaceAll("_"," ")+"\nThis lifecycle change was recorded in the Product Hub.";
+   const {data:post,error:postError}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority:"normal",due_at:null,status:"open"}).select("id").single();
+   if(postError)throw Error("Lifecycle was saved, but the staff group announcement failed. Please retry posting the announcement.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:isDeploy?"product_deployment_recorded":"product_lifecycle_updated",details:{product_id:product.id,product_name:product.name,previous_status:old.status,new_status:status,deployment_url:isDeploy?deploymentUrl:null,version:product.current_version,staff_message_id:post.id}});
+   return reply(200,{message:isDeploy?"Deployment record saved and announced to the ZakiTech Group Chat.":"Product lifecycle updated and announced to the ZakiTech Group Chat.",product});
+  }
   if(action==="post-product-review"){
    requireAdmin();
-   const productId=clean(b.product_id,80),title=clean(b.title,180),body=clean(b.body,5000),recognition=clean(b.recognition,2000);
+   const productId=clean(b.product_id,80),title=clean(b.title,180),body=clean(b.body,5000),recognition=clean(b.recognition,2000),staffIds=Array.isArray(b.staff_ids)?[...new Set(b.staff_ids.map((x:unknown)=>clean(x,80)).filter(Boolean))].slice(0,30):[];
    if(!productId||title.length<3||body.length<5)return reply(400,{error:"Choose a product and provide a review heading and review."});
    const {data:product,error:productError}=await db.from("zt_products").select("id,name,status,current_version").eq("id",productId).maybeSingle();
    if(productError||!product)return reply(404,{error:"Product not found."});
-   const reviewBody="[PRODUCT_REVIEW]\n🏆 "+product.name+" — "+title+"\nStatus: "+product.status.replaceAll("_"," ")+" · Version: "+(product.current_version||"not set")+"\n\nReview: "+body+(recognition?"\n\nTeam congratulations: "+recognition:"");
+   let responsible:string[]=[];
+   if(staffIds.length){const {data:people,error:peopleError}=await db.from("zt_profiles").select("user_id,display_name,username,status").in("user_id",staffIds);if(peopleError||!people||people.length!==staffIds.length)return reply(400,{error:"One or more selected staff members could not be found."});responsible=people.map((p:any)=>(p.display_name||p.username)+" (@"+p.username+")");}
+   const reviewBody="[PRODUCT_REVIEW]\n🏆 "+product.name+" — "+title+"\nStatus: "+product.status.replaceAll("_"," ")+" · Version: "+(product.current_version||"not set")+"\n"+(responsible.length?"Recognized staff: "+responsible.join(", ")+"\n":"")+"\nReview: "+body+(recognition?"\n\n🎉 Team congratulations: "+recognition:"");
    const {data,error}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body:reviewBody,priority:"normal",due_at:null,status:"open"}).select("*,sender:zt_profiles!zt_staff_messages_sender_id_exit_fkey(user_id,username,display_name,role)").single();
    if(error)throw Error("Could not publish the product review to the staff group.");
    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_review_published",details:{product_id:product.id,product_name:product.name,title,recognition:!!recognition,message_id:data.id}});
