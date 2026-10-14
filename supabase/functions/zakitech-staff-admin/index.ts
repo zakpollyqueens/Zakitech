@@ -55,6 +55,9 @@ Deno.serve(async(req:Request)=>{
   const mayManage=["owner","vice_admin","receptionist"].includes(actor.role)||actor.full_access===true;
   if(!mayManage)return reply(403,{error:"Only the CEO, Vice Administrator, or Receptionist can manage staff invitations."});
   if(b.action==="list-available-usernames"){
+   await admin.from("zt_staff_invites").update({status:"expired"}).eq("status","pending").lt("expires_at",new Date().toISOString());
+   const {data:released}=await admin.from("zt_username_pool").select("username,assigned_invite_id").eq("status","assigned").not("assigned_invite_id","is",null);
+   for(const item of released||[]){const {data:iv}=await admin.from("zt_staff_invites").select("status").eq("id",item.assigned_invite_id).maybeSingle();if(iv&&["expired","revoked"].includes(iv.status))await admin.from("zt_username_pool").update({status:"available",assigned_invite_id:null,assigned_at:null}).eq("username",item.username).eq("status","assigned")}
    const {data,error}=await admin.from("zt_username_pool").select("username").eq("status","available").order("username").limit(500);
    if(error)return reply(500,{error:"Could not load available usernames."});
    return reply(200,{usernames:(data||[]).map((x:any)=>x.username)});
@@ -84,8 +87,9 @@ Deno.serve(async(req:Request)=>{
   }
   if(b.action==="revoke-staff-invite"){
    const id=typeof b.id==="string"?b.id:"";
-   const {data,error}=await admin.from("zt_staff_invites").update({status:"revoked"}).eq("id",id).eq("status","pending").select("id").maybeSingle();
+   const {data,error}=await admin.from("zt_staff_invites").update({status:"revoked"}).eq("id",id).eq("status","pending").select("id,username").maybeSingle();
    if(error||!data)return reply(404,{error:"Pending invitation not found."});
+   await admin.from("zt_username_pool").update({status:"available",assigned_invite_id:null,assigned_at:null}).eq("username",data.username).eq("status","assigned");
    await admin.from("zt_audit_events").insert({actor_user_id:ud.user.id,event_type:"staff_invitation_revoked",details:{invite_id:id}});
    return reply(200,{message:"Invitation revoked."});
   }
