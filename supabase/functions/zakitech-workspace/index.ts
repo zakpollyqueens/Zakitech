@@ -7,7 +7,7 @@ type Workstation = "product_development"|"release_management"|"notifications"|"a
 const workstationNames:Workstation[]=["product_development","release_management","notifications","announcements","support_inbox","communication"];
 const adminRoles=["owner","vice_admin"];
 const clean=(v:unknown,max=5000)=>typeof v==="string"?v.trim().slice(0,max):"";
-const lifecycleLabel=(v:string)=>({planned:"Planned",in_development:"In development",in_review:"In review",paused:"Paused",launched:"Deployed",archived:"Archived"} as Record<string,string>)[v]||v.replaceAll("_"," ");
+const lifecycleLabel=(v:string)=>({planned:"Planned",created:"Created",in_development:"In development",in_review:"In review",paused:"Paused",launched:"Deployed",archived:"Archived"} as Record<string,string>)[v]||v.replaceAll("_"," ");
 function publicHttpsUrl(raw:string):URL{
  let url:URL;try{url=new URL(raw)}catch{throw new Error("Enter a valid live HTTPS deployment URL.")}
  if(url.protocol!=="https:"||url.username||url.password)throw new Error("Deployment verification requires a public HTTPS URL.");
@@ -156,7 +156,7 @@ Deno.serve(async(req:Request)=>{
   if(action==="create-product"||action==="update-product"){
    requireLeadership();
    const id=clean(b.id,80),name=clean(b.name,120),slug=clean(b.slug,80).toLowerCase(),description=clean(b.description,3000),repo=clean(b.repository_url,500),website=clean(b.website_url,500),adminUrl=clean(b.admin_center_url,500),version=clean(b.current_version,40),status=clean(b.status,40)||"planned";
-   const allowedStatuses=action==="create-product"?["planned","in_development","in_review","paused"]:["planned","in_development","in_review","launched","paused","archived"];
+   const allowedStatuses=action==="create-product"?["planned","created","in_development","in_review","paused"]:["planned","created","in_development","in_review","launched","paused","archived"];
    if(name.length<2||!/^[a-z0-9-]{2,80}$/.test(slug)||!allowedStatuses.includes(status))return reply(400,{error:"Provide a valid product name, slug and status. New products cannot be marked deployed until a live URL is verified."});
    const previous=action==="update-product"?await db.from("zt_products").select("id,name,status,current_version").eq("id",id).maybeSingle():{data:null,error:null};
    if(action==="update-product"&&(!previous.data||previous.error))return reply(404,{error:"Product not found."});
@@ -305,7 +305,7 @@ Deno.serve(async(req:Request)=>{
   if(action==="set-product-lifecycle"){
    requireLeadership();
    const id=clean(b.id,80),status=clean(b.status,40),deploymentUrl=clean(b.deployment_url,500),version=clean(b.current_version,40);
-   if(!id||!["planned","in_development","in_review","paused","launched"].includes(status))return reply(400,{error:"Choose a valid product and lifecycle status."});
+   if(!id||!["planned","created","in_development","in_review","paused","launched"].includes(status))return reply(400,{error:"Choose a valid product and lifecycle status."});
    const {data:old,error:oldError}=await db.from("zt_products").select("id,name,status,current_version,website_url,deployment_url,deployed_at,deployed_by").eq("id",id).maybeSingle();
    if(oldError||!old)return reply(404,{error:"Product not found."});
    let verified:{url:string;httpStatus:number}|null=null;
