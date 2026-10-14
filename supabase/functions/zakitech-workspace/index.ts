@@ -44,7 +44,7 @@ Deno.serve(async(req:Request)=>{
    const {data:products,error:pe}=await db.from("zt_products").select("*").neq("status","archived").order("created_at",{ascending:true});
    if(pe)throw Error("Could not load the Product Hub.");
    let assignmentsQuery=db.from("zt_workstation_assignments").select("id,user_id,workstation,product_id,created_at").order("created_at",{ascending:false});
-   if(!isAdmin)assignmentsQuery=assignmentsQuery.eq("user_id",uid);
+   if(!isAdmin&&actor.role!=="receptionist")assignmentsQuery=assignmentsQuery.eq("user_id",uid);
    const {data:assignments,error:ae}=await assignmentsQuery;
    if(ae)throw Error("Could not load your workstation assignments.");
    let tasksQuery=db.from("zt_tasks").select("*,product:zt_products(id,name,slug),assignee:zt_profiles!zt_tasks_assigned_to_exit_fkey(user_id,username,display_name)").order("created_at",{ascending:false}).limit(100);
