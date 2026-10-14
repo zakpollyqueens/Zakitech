@@ -156,21 +156,23 @@ Deno.serve(async(req:Request)=>{
   if(action==="create-product"||action==="update-product"){
    requireLeadership();
    const id=clean(b.id,80),name=clean(b.name,120),slug=clean(b.slug,80).toLowerCase(),description=clean(b.description,3000),repo=clean(b.repository_url,500),website=clean(b.website_url,500),adminUrl=clean(b.admin_center_url,500),version=clean(b.current_version,40),status=clean(b.status,40)||"planned";
-   if(name.length<2||!/^[a-z0-9-]{2,80}$/.test(slug)||!["planned","in_development","in_review","launched","paused","archived"].includes(status))return reply(400,{error:"Provide a valid product name, slug and status."});
-   const values={name,slug,description,repository_url:repo||null,website_url:website||null,admin_center_url:adminUrl||null,current_version:version||null,status,updated_at:new Date().toISOString()};
+   const allowedStatuses=action==="create-product"?["planned","in_development","in_review","paused"]:["planned","in_development","in_review","launched","paused","archived"];
+   if(name.length<2||!/^[a-z0-9-]{2,80}$/.test(slug)||!allowedStatuses.includes(status))return reply(400,{error:"Provide a valid product name, slug and status. New products cannot be marked deployed until a live URL is verified."});
    const previous=action==="update-product"?await db.from("zt_products").select("id,name,status,current_version").eq("id",id).maybeSingle():{data:null,error:null};
    if(action==="update-product"&&(!previous.data||previous.error))return reply(404,{error:"Product not found."});
+   if(action==="update-product"&&status==="launched"&&previous.data.status!=="launched")return reply(400,{error:"Use the Record deployment action to verify the live HTTPS URL before marking a product deployed."});
+   const values={name,slug,description,repository_url:repo||null,website_url:website||null,admin_center_url:adminUrl||null,current_version:version||null,status,updated_at:new Date().toISOString()};
    const result=action==="create-product"?await db.from("zt_products").insert({...values,created_by:uid}).select().single():await db.from("zt_products").update(values).eq("id",id).select().single();
    if(result.error||!result.data)throw Error("Could not save product. Check that its slug is unique.");
    if(action==="create-product"){
-    const body="🆕 PRODUCT CREATED\n"+result.data.name+" has been registered in the ZakiTech Product Hub.\nLifecycle: "+status.replaceAll("_"," ")+"\n"+(version?"Version: "+version+"\n":"")+"The team can now follow its assignments and progress in the Product Hub.";
+    const body="🆕 PRODUCT CREATED\n"+result.data.name+" has been registered in the ZakiTech Product Hub.\nLifecycle: "+lifecycleLabel(status)+"\n"+(version?"Version: "+version+"\n":"")+"The team can now follow its assignments and progress in the Product Hub.";
     const {error:postError}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority:"normal",due_at:null,status:"open"});
-    if(postError)throw Error("Product was saved, but the creation announcement could not be posted.");
+    if(postError){await db.from("zt_products").delete().eq("id",result.data.id);throw Error("Product creation was rolled back because the staff group announcement could not be published.");}
     await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_created_and_announced",details:{product_id:result.data.id,product_name:name,status}});
    }else if(previous.data.status!==status){
-    const body="📣 PRODUCT STATUS UPDATE\n"+result.data.name+"\nPrevious status: "+previous.data.status.replaceAll("_"," ")+"\nNew status: "+status.replaceAll("_"," ")+"\n"+(version?"Version: "+version+"\n":"")+"This lifecycle change was recorded by ZakiTech leadership in the Product Hub.";
+    const body="📣 PRODUCT STATUS UPDATE\n"+result.data.name+"\nPrevious status: "+lifecycleLabel(previous.data.status)+"\nNew status: "+lifecycleLabel(status)+"\n"+(version?"Version: "+version+"\n":"")+"This lifecycle change was recorded by ZakiTech leadership in the Product Hub.";
     const {error:postError}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority:"normal",due_at:null,status:"open"});
-    if(postError)throw Error("Product status was saved, but its group announcement could not be posted.");
+    if(postError){const {error:rollbackError}=await db.from("zt_products").update({status:previous.data.status,current_version:previous.data.current_version,updated_at:new Date().toISOString()}).eq("id",id);if(rollbackError)throw Error("The product status changed but the group announcement failed and automatic rollback failed. Inspect Product Hub before retrying.");throw Error("The status change was rolled back because the staff group announcement could not be published.");}
     await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_status_changed_and_announced",details:{product_id:result.data.id,product_name:name,previous_status:previous.data.status,new_status:status}});
    }
    return reply(200,{message:action==="create-product"?"Product created and announced to the staff group.":"Product saved.",product:result.data});
