@@ -13,7 +13,9 @@ A Zakmolanitech Solutions private company-management application.
 - Staff invitations, unique usernames, role assignment, account suspension/reactivation, and audit events.
 - Database row-level security on profile and audit tables.
 - Backend roles: owner, vice_admin, web_developer, application_developer, engineer, staff.
-- Product Hub, project assignments, and announcements are shown as planned workspace modules, not yet complete.
+- Product Hub with evidence-based lifecycle tracking and deployment verification
+- Dedicated Molan Business Control Center for leadership-approved milestones, blockers, release notes, staff tasks, product workstation access, technical links, and audited project announcements
+- Product-specific staff access is explicit and least-privilege; product role labels alone do not grant repository access
 
 ## Security design
 
