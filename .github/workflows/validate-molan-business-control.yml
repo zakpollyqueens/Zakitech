@@ -1,0 +1,39 @@
+name: Validate Molan Business Control Center
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  validate-control-center:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate control-center JavaScript syntax
+        run: node --check assets/js/molan-business-control.js
+      - name: Validate required control-center assets
+        run: |
+          test -s molan-business-control.html
+          test -s assets/js/molan-business-control.js
+          test -s assets/css/molan-business-control.css
+      - name: Check page wiring and secure backend actions
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('molan-business-control.html', 'utf8');
+          const js = fs.readFileSync('assets/js/molan-business-control.js', 'utf8');
+          const backend = fs.readFileSync('supabase/functions/zakitech-workspace/index.ts', 'utf8');
+          for (const file of ['assets/js/supabase-config.js','assets/js/workspace-navigation.js','assets/js/molan-business-control.js']) {
+            if (!html.includes(file)) throw new Error('Missing control-center script: ' + file);
+          }
+          for (const action of ['molan-business-control-bootstrap','molan-business-control-save-item','molan-business-control-update-item','molan-business-control-delete-item','molan-business-control-announce']) {
+            if (!backend.includes(action)) throw new Error('Missing secure backend action: ' + action);
+          }
+          if (!js.includes('zakitech-workspace')) throw new Error('Control center must use the authenticated backend.');
+          if (/service_role|SUPABASE_SERVICE_ROLE_KEY/i.test(js)) throw new Error('A server secret must never be shipped to the browser.');
+          if (!backend.includes('requireLeadership();') || !backend.includes('molan_business_control_item_created')) throw new Error('Leadership checks and audit events are required.');
+          console.log('Molan Business Control Center wiring and security smoke checks passed.');
+          NODE
