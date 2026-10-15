@@ -175,6 +175,7 @@ Deno.serve(async(req:Request)=>{
     if(postError){const {error:rollbackError}=await db.from("zt_products").update({status:previous.data.status,current_version:previous.data.current_version,updated_at:new Date().toISOString()}).eq("id",id);if(rollbackError)throw Error("The product status changed but the group announcement failed and automatic rollback failed. Inspect Product Hub before retrying.");throw Error("The status change was rolled back because the staff group announcement could not be published.");}
     await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_status_changed_and_announced",details:{product_id:result.data.id,product_name:name,previous_status:previous.data.status,new_status:status}});
    }
+   else if(action==="update-product"){await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_details_updated",details:{product_id:result.data.id,product_name:name,slug,repository_url_changed:repo!=="" ,website_url_changed:website!=="" ,admin_center_url_changed:adminUrl!=="" ,current_version:version||null}});}
    return reply(200,{message:action==="create-product"?"Product created and announced to the staff group.":"Product saved.",product:result.data});
   }
   if(action==="create-task"){
