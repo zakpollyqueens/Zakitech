@@ -396,6 +396,82 @@ Deno.serve(async(req:Request)=>{
    const records=await Promise.all((data||[]).map(async(row:any)=>{let avatar_url=null;if(row.staff?.avatar_path){const {data:signed}=await db.storage.from("zt-profile-avatars").createSignedUrl(row.staff.avatar_path,3600);avatar_url=signed?.signedUrl||null}return {...row,staff:row.staff?{...row.staff,avatar_url}:null}}));
    return reply(200,{records});
   }
+  if(action==="molan-business-control-bootstrap"){
+   const {data:product,error:productError}=await db.from("zt_products").select("*").eq("slug","molan-business").maybeSingle();
+   if(productError||!product)return reply(404,{error:"Molan Business has not been registered in the Product Hub yet."});
+   const canRead=adminRoles.includes(actor.role)||await hasAccess("product_development",product.id)||await hasAccess("release_management",product.id);
+   if(!canRead)return reply(403,{error:"Molan Business Control Center access is limited to ZakiTech leadership and staff explicitly assigned to this product."});
+   const {data:items,error:itemError}=await db.from("zt_product_control_items").select("*").eq("product_id",product.id).order("created_at",{ascending:false}).limit(200);
+   if(itemError)throw Error("Could not load Molan Business milestones and blockers.");
+   const {data:tasks,error:taskError}=await db.from("zt_tasks").select("id,title,description,assigned_to,created_by,priority,status,due_at,created_at,updated_at,assignee:zt_profiles!zt_tasks_assigned_to_exit_fkey(user_id,username,display_name,role,status)").eq("product_id",product.id).order("created_at",{ascending:false}).limit(100);
+   if(taskError)throw Error("Could not load Molan Business tasks.");
+   const {data:builds,error:buildError}=await db.from("zt_product_builds").select("id,version,title,description,release_notes,channel,status,file_name,file_size,submitted_by,reviewed_by,review_note,submitted_at,reviewed_at,published_at,created_at").eq("product_id",product.id).order("created_at",{ascending:false}).limit(100);
+   if(buildError)throw Error("Could not load Molan Business build history.");
+   const {data:assignments,error:assignmentError}=await db.from("zt_workstation_assignments").select("id,user_id,workstation,product_id,created_at,staff:zt_profiles!zt_workstation_assignments_user_id_fkey(user_id,username,display_name,role,status)").eq("product_id",product.id).order("created_at",{ascending:false});
+   if(assignmentError)throw Error("Could not load the assigned product team.");
+   let staff:any[]=[];
+   if(adminRoles.includes(actor.role)){const {data:rows,error:staffError}=await db.from("zt_profiles").select("user_id,username,display_name,role,status").eq("status","active").order("display_name");if(staffError)throw Error("Could not load active staff for product assignments.");staff=rows||[];}
+   return reply(200,{profile:actorProfile,can_manage:adminRoles.includes(actor.role),product,items:items||[],tasks:tasks||[],builds:builds||[],assignments:assignments||[],staff});
+  }
+  if(action==="molan-business-control-save-item"){
+   requireLeadership();
+   const productResult=await db.from("zt_products").select("id,name").eq("slug","molan-business").maybeSingle();
+   if(productResult.error||!productResult.data)return reply(404,{error:"Molan Business product record was not found."});
+   const itemType=clean(b.item_type,30),title=clean(b.title,180),description=clean(b.description,8000),priority=clean(b.priority,20)||"normal",dueAt=clean(b.due_at,60)||null,assignedTo=clean(b.assigned_to,80)||null;
+   const allowed:Record<string,string[]>={milestone:["planned","in_progress","completed","blocked"],blocker:["open","in_progress","resolved"],release_note:["draft"]};
+   const status=clean(b.status,30)||(itemType==="blocker"?"open":itemType==="release_note"?"draft":"planned");
+   if(!allowed[itemType]||!allowed[itemType].includes(status)||title.length<3||!["low","normal","high","urgent"].includes(priority))return reply(400,{error:"Provide a valid item type, title, status, and priority. New release notes must begin as drafts."});
+   if(assignedTo){const {data:person,error:personError}=await db.from("zt_profiles").select("user_id,status").eq("user_id",assignedTo).maybeSingle();if(personError||!person||person.status!=="active")return reply(400,{error:"Choose an active ZakiTech staff member."});}
+   const {data:item,error}=await db.from("zt_product_control_items").insert({product_id:productResult.data.id,item_type:itemType,title,description,status,priority,due_at:dueAt,assigned_to:assignedTo,created_by:uid}).select().single();
+   if(error||!item)throw Error("Could not save the Molan Business control-center item.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"molan_business_control_item_created",details:{product_id:productResult.data.id,item_id:item.id,item_type:itemType,title,status,priority}});
+   return reply(201,{message:"Molan Business control-center item created.",item});
+  }
+  if(action==="molan-business-control-update-item"){
+   requireLeadership();
+   const id=clean(b.id,80),title=clean(b.title,180),description=clean(b.description,8000),status=clean(b.status,30),priority=clean(b.priority,20)||"normal",dueAt=clean(b.due_at,60)||null,assignedTo=clean(b.assigned_to,80)||null;
+   const {data:old,error:lookupError}=await db.from("zt_product_control_items").select("*").eq("id",id).maybeSingle();
+   if(lookupError||!old)return reply(404,{error:"Control-center item not found."});
+   const {data:product}=await db.from("zt_products").select("id,slug,name").eq("id",old.product_id).maybeSingle();
+   if(product?.slug!=="molan-business")return reply(404,{error:"Control-center item does not belong to Molan Business."});
+   const allowed:Record<string,string[]>={milestone:["planned","in_progress","completed","blocked"],blocker:["open","in_progress","resolved"],release_note:["draft","published"]};
+   if(!allowed[old.item_type]?.includes(status)||title.length<3||!["low","normal","high","urgent"].includes(priority))return reply(400,{error:"Choose a valid title, status, and priority for this item."});
+   if(assignedTo){const {data:person,error:personError}=await db.from("zt_profiles").select("user_id,status").eq("user_id",assignedTo).maybeSingle();if(personError||!person||person.status!=="active")return reply(400,{error:"Choose an active ZakiTech staff member."});}
+   let announcementId:string|null=null;
+   if(old.item_type==="release_note"&&status==="published"&&old.status!=="published"){
+    const body="📦 MOLAN BUSINESS RELEASE NOTE\n"+title+"\n"+description+"\nProduct status: "+lifecycleLabel(product.status)+"\nControl Center: https://zakpollyqueens.github.io/Zakitech/molan-business-control.html";
+    const {data:post,error:postError}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority:"normal",due_at:null,status:"open"}).select("id").single();
+    if(postError)throw Error("Release note was not published because the ZakiTech Group Chat announcement failed.");
+    announcementId=post.id;
+   }
+   const {data:item,error}=await db.from("zt_product_control_items").update({title,description,status,priority,due_at:dueAt,assigned_to:assignedTo,updated_at:new Date().toISOString()}).eq("id",id).select().single();
+   if(error||!item){if(announcementId)await db.from("zt_staff_messages").delete().eq("id",announcementId);throw Error("Could not update the control-center item.");}
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:old.item_type==="release_note"&&status==="published"?"molan_business_release_note_published":"molan_business_control_item_updated",details:{product_id:product.id,item_id:id,item_type:old.item_type,previous_status:old.status,new_status:status,title,announcement_id:announcementId}});
+   return reply(200,{message:old.item_type==="release_note"&&status==="published"?"Release note published and announced to the ZakiTech Group Chat.":"Control-center item updated.",item});
+  }
+  if(action==="molan-business-control-delete-item"){
+   requireLeadership();
+   const id=clean(b.id,80);
+   const {data:item,error:lookupError}=await db.from("zt_product_control_items").select("id,product_id,item_type,title").eq("id",id).maybeSingle();
+   if(lookupError||!item)return reply(404,{error:"Control-center item not found."});
+   const {data:product}=await db.from("zt_products").select("slug").eq("id",item.product_id).maybeSingle();
+   if(product?.slug!=="molan-business")return reply(404,{error:"Control-center item does not belong to Molan Business."});
+   const {error}=await db.from("zt_product_control_items").delete().eq("id",id);if(error)throw Error("Could not delete the control-center item.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"molan_business_control_item_deleted",details:{product_id:item.product_id,item_id:id,item_type:item.item_type,title:item.title}});
+   return reply(200,{message:"Control-center item deleted."});
+  }
+  if(action==="molan-business-control-announce"){
+   requireLeadership();
+   const title=clean(b.title,180),message=clean(b.message,5000),priority=clean(b.priority,20)||"normal";
+   if(title.length<3||message.length<5||!["low","normal","high","urgent"].includes(priority))return reply(400,{error:"Provide an announcement title, message, and valid priority."});
+   const {data:product}=await db.from("zt_products").select("id,name,status,current_version").eq("slug","molan-business").maybeSingle();
+   if(!product)return reply(404,{error:"Molan Business product record was not found."});
+   const body="📣 MOLAN BUSINESS PROJECT UPDATE\n"+title+"\n"+message+"\nLifecycle: "+lifecycleLabel(product.status)+" · Version: "+(product.current_version||"not set")+"\nControl Center: https://zakpollyqueens.github.io/Zakitech/molan-business-control.html";
+   const {data:post,error}=await db.from("zt_staff_messages").insert({sender_id:uid,message_type:"chat",title:null,body,priority,status:"open"}).select("id").single();
+   if(error)throw Error("Could not publish the update to the ZakiTech Group Chat.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"molan_business_project_update_published",details:{product_id:product.id,title,priority,message_id:post.id}});
+   return reply(201,{message:"Project update posted to the ZakiTech Group Chat.",record:post});
+  }
   return reply(400,{error:"Unknown workspace action."});
  }catch(e){
   const err=e as Error & {status?:number};
