@@ -1,24 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06152b"/><stop offset=".55" stop-color="#0b3558"/><stop offset="1" stop-color="#041126"/></linearGradient>
-    <linearGradient id="letters" x1="0" y1="0" x2=".15" y2="1"><stop stop-color="#ffffff"/><stop offset=".22" stop-color="#a9f5ff"/><stop offset=".48" stop-color="#42d8f4"/><stop offset=".72" stop-color="#159ed4"/><stop offset="1" stop-color="#0870ad"/></linearGradient>
-    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff" stop-opacity=".9"/><stop offset="1" stop-color="#41d9f5" stop-opacity=".18"/></linearGradient>
-    <radialGradient id="halo"><stop stop-color="#20c9f0" stop-opacity=".4"/><stop offset="1" stop-color="#20c9f0" stop-opacity="0"/></radialGradient>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feGaussianBlur stdDeviation="8"/></filter>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff" stop-opacity=".34"/><stop offset=".48" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <circle cx="256" cy="248" r="225" fill="url(#halo)"/>
-  <rect x="20" y="20" width="472" height="472" rx="96" fill="none" stroke="#7beaff" stroke-opacity=".34" stroke-width="2"/>
-  <rect x="34" y="34" width="444" height="444" rx="84" fill="none" stroke="#fff" stroke-opacity=".08"/>
-  <path d="M89 183h98l-66 68 68 79H90l-29-35 65-68-66-44z" fill="#000" opacity=".4" filter="url(#shadow)" transform="translate(4 12)"/>
-  <g font-family="Arial,Helvetica,sans-serif" font-weight="900" text-anchor="middle" paint-order="stroke fill">
-    <text x="256" y="322" font-size="184" letter-spacing="-13" fill="#000" opacity=".42" stroke="#000" stroke-opacity=".25" stroke-width="8" transform="translate(0 11)">ZAK</text>
-    <text x="256" y="312" font-size="184" letter-spacing="-13" fill="url(#letters)" stroke="url(#edge)" stroke-width="3">ZAK</text>
-    <text x="256" y="312" font-size="184" letter-spacing="-13" fill="url(#shine)">ZAK</text>
-  </g>
-  <path d="M83 109Q256 40 429 109" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="3" stroke-linecap="round"/>
-  <path d="M-120 0h90l250 512h-90z" fill="#fff" opacity=".10"><animateTransform attributeName="transform" type="translate" values="-400 0;850 0" dur="5.5s" repeatCount="indefinite"/></path>
-  <circle cx="405" cy="106" r="5" fill="#fff"/><circle cx="421" cy="123" r="3" fill="#56e6fa"/><circle cx="94" cy="397" r="4" fill="#56e6fa"/>
-  <path d="M402 153l6 12 13 2-10 9 2 13-11-6-11 6 2-13-10-9 13-2z" fill="#b8f7ff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+ <defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f5f5f5"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe47a"/><stop offset=".22" stop-color="#e8b52d"/><stop offset=".53" stop-color="#b67a0b"/><stop offset=".72" stop-color="#ffd34e"/><stop offset="1" stop-color="#a76c09"/></linearGradient>
+  <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#152a3c"/><stop offset=".5" stop-color="#071522"/><stop offset="1" stop-color="#020812"/></linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".5" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <filter id="shadow" x="-25%" y="-25%" width="150%" height="160%"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#111827" flood-opacity=".24"/></filter>
+ </defs>
+ <rect width="1024" height="1024" rx="210" fill="url(#bg)"/>
+ <rect x="18" y="18" width="988" height="988" rx="196" fill="none" stroke="#fff" stroke-width="7"/>
+ <g filter="url(#shadow)">
+  <path d="M350 230H670Q705 230 680 265L520 450L335 692L510 526L380 690L655 690L602 765H300Q276 765 295 742L526 440H285L330 230Z" fill="url(#navy)" transform="translate(18 15)"/>
+  <path d="M350 230H670Q705 230 680 265L520 450L278 690L500 402H285L330 230Z" fill="url(#gold)" stroke="#a06c0b" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M350 230H670Q705 230 680 265L520 450L278 690L500 402H285L330 230Z" fill="url(#shine)"/>
+  <path d="M500 402L520 450L335 692L510 526L655 526L602 601H300L295 742L526 440" fill="url(#navy)" stroke="#0a1723" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M278 690L500 402H285L330 230" fill="none" stroke="#ffe07a" stroke-width="5" stroke-linejoin="round"/>
+ </g>
+ <path d="M748 170Q758 218 805 228Q758 238 748 286Q738 238 691 228Q738 218 748 170Z" fill="url(#gold)" stroke="#ad7915" stroke-width="3"/>
+ <text x="512" y="846" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="77" letter-spacing="7" fill="url(#navy)"><tspan fill="url(#gold)" font-weight="700">ZAKI</tspan><tspan font-weight="400">TECH</tspan></text>
+ <text x="512" y="906" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="29" letter-spacing="4.6" fill="#132131">MANAGE. EMPOWER. <tspan fill="#bd861b">GROW.</tspan></text>
 </svg>
