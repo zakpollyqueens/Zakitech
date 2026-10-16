@@ -83,3 +83,9 @@ The database migration and Edge Function have been deployed. The website lock sc
 - Trigger coverage includes profiles, products, workstation assignments, published build workflow, announcements, notifications, product messages, tasks, staff group messages, meetings, meeting RSVPs, and board items. Payroll, workstation credentials, audit events, direct staff messages, performance events, and exit requests are excluded from broadcast triggers.
 - When a device is offline, live delivery pauses; on reconnection or when the app is brought back into view, the client refreshes through the authenticated backend.
 - Native Android code does not silently self-install updates. A new Android build must be signed and distributed through an approved update channel; the existing workflow builds a debug test APK for testing.
+
+## Molan Business subscription and Workshop Real Time reference
+
+The Molan Business plan schedule is Gold (3 months), Silver (2 months), and Premium (1 month). Proposed international reference rates are Gold $100/month, Silver $60/month, and Premium $50/month; package totals are $300, $120, and $50. These are reference values, not an approved checkout or an active payment integration. Exact Uganda UGX and regional currency amounts must be confirmed in the Molan Business subscription catalog before payment collection is enabled.
+
+Workshop Real Time is owner-controlled camera oversight. A working connection requires owner-authorised device ownership verification, compatible IP camera/NVR/DVR or an approved manufacturer API/ONVIF/secure relay, stable power and internet, configured storage/retention and timestamps, and explicit staff viewing permissions. QR/Bluetooth/Wi-Fi may assist setup but are not proof of ownership or a universal streaming connection. Only the active business owner can modify or delete archived footage. Security controls reduce risk but do not guarantee zero risk.
