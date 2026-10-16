@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071426">
+<meta name="description" content="Authorized bulk payment request preparation for Molan Business and Molan Chat upgrades.">
+<title>Bulk Payment Links · ZakiTech</title>
+<link rel="icon" href="assets/images/zakitech-mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/workspace.css"><link rel="stylesheet" href="assets/css/workspace-pages.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js" defer></script>
+<script src="assets/js/supabase-config.js" defer></script><script src="assets/js/live-sync.js" defer></script><script src="assets/js/workstation-lock.js" defer></script><script src="assets/js/workspace-navigation.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<style>
+.bulk-wrap{max-width:1180px;margin:0 auto}.bulk-hero{background:linear-gradient(125deg,rgba(14,165,233,.18),rgba(99,102,241,.16));border:1px solid rgba(125,211,252,.2);border-radius:24px;padding:28px;margin-bottom:22px}.bulk-hero h1{margin:.25rem 0 .6rem}.bulk-hero p{max-width:820px;line-height:1.65}.bulk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.bulk-card{padding:22px;border:1px solid rgba(148,163,184,.2);border-radius:20px;background:rgba(15,23,42,.55);margin-bottom:18px}.bulk-card h2{margin:0 0 10px}.bulk-card p,.bulk-card li{line-height:1.6;color:var(--muted,#aab8ca)}.bulk-drop{display:block;padding:24px;border:1px dashed #54c7e8;border-radius:16px;text-align:center;cursor:pointer;background:rgba(14,165,233,.06)}.bulk-drop input{display:block;margin:14px auto 0;max-width:100%}.bulk-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.bulk-actions button,.bulk-actions a{border:0;border-radius:11px;padding:12px 16px;font-weight:700;cursor:pointer;text-decoration:none}.bulk-primary{background:#19b8d7;color:#042032}.bulk-secondary{background:rgba(148,163,184,.15);color:inherit}.bulk-status{padding:12px 14px;border-radius:12px;margin:12px 0;white-space:pre-wrap}.bulk-status.warn{background:rgba(245,158,11,.12);color:#fcd34d}.bulk-status.ok{background:rgba(16,185,129,.12);color:#6ee7b7}.bulk-status.err{background:rgba(239,68,68,.12);color:#fca5a5}.bulk-table-wrap{overflow:auto}table.bulk-table{width:100%;border-collapse:collapse;font-size:13px}table.bulk-table th,table.bulk-table td{padding:10px;border-bottom:1px solid rgba(148,163,184,.18);text-align:left;white-space:nowrap}table.bulk-table th{color:#7dd3fc} .bulk-muted{font-size:13px;opacity:.8}@media(max-width:780px){.bulk-grid{grid-template-columns:1fr}.bulk-hero{padding:20px}.bulk-card{padding:16px}}
+</style></head>
+<body class="workspace-page-body" data-page="bulk-payment-links">
+<header class="workspace-topbar page-topbar"><div class="brand-group"><button class="menu-toggle" id="pageMenuToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button><a class="brand" href="workspace.html"><span class="brand-mark"><img src="assets/images/zakitech-app-icon.svg" alt=""></span><span class="brand-word">Zaki<span>Tech</span></span></a><span class="topbar-divider"></span><span class="page-breadcrumb">Bulk payment links</span></div><div class="page-top-actions"><span class="page-live-dot"></span><span id="pageUserLabel">Checking session…</span><button id="pageSignOut" class="page-logout" type="button">Sign out</button></div></header>
+<aside id="pageNavScrim" class="nav-scrim" hidden></aside>
+<nav id="pageSideNav" class="workspace-nav" aria-label="Main navigation"><div class="nav-caption">COMPANY WORKSPACE</div><a class="nav-button" href="zakitech-overview.html"><span>✦</span> ZakiTech overview</a><a class="nav-button" href="workspace.html"><span>⌂</span> Dashboard</a><a class="nav-button" href="product-hub.html"><span>◈</span> Product Hub</a><a class="nav-button" href="molan-business-control.html"><span>◈</span> Molan Business Control Center</a><a class="nav-button active" href="bulk-payment-links.html"><span>＄</span> Bulk payment links</a><a class="nav-button" href="settings.html"><span>⚙</span> Settings</a><div class="nav-bottom">ZAKITECH <small>Equipping minds with IT solutions.<br>Payments are verified server-side.</small></div></nav>
+<main class="workspace-main dedicated-main"><div class="bulk-wrap">
+<section class="bulk-hero"><p class="eyebrow">ZAKITECH · BILLING OPERATIONS</p><h1>Bulk payment links</h1><p>Import a CSV or Excel workbook containing multiple upgrade requests for <strong>Molan Business</strong> and <strong>Molan Chat</strong>. Review every row before sending the batch to the secure payment backend.</p><div class="bulk-actions"><a class="bulk-primary" href="Molan_ZakiTech_Bulk_Payment_Link_Template.xlsx" download>Download Excel template ↓</a><a class="bulk-secondary" href="Molan_ZakiTech_Bulk_Payment_Link_Template.csv" download>Download CSV template ↓</a></div></section>
+<div id="bulkSessionStatus" class="bulk-status warn" role="status">Checking your signed-in ZakiTech session…</div>
+<div class="bulk-grid"><section class="bulk-card"><h2>1. Upload your sheet</h2><p>Supported formats: .csv, .xlsx, .xls. Use the first worksheet for Excel files. Each row should contain one payment request.</p><label class="bulk-drop" for="bulkFile"><strong>Choose CSV or Excel file</strong><br><span class="bulk-muted">No file is uploaded until you review and submit it.</span><input id="bulkFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></label><div class="bulk-actions"><button id="validateBatch" class="bulk-primary" type="button">Validate & preview</button><button id="clearBatch" class="bulk-secondary" type="button">Clear</button></div><div id="bulkValidation" aria-live="polite"></div></section>
+<section class="bulk-card"><h2>2. Required columns</h2><p>Use these column names in the first row:</p><ul><li><code>product</code> — Molan Business or Molan Chat</li><li><code>customer_name</code>, <code>country</code></li><li><code>plan</code>, <code>currency</code>, <code>amount</code></li><li><code>reference</code> — unique for every request</li></ul><p>Optional: <code>customer_email</code>, <code>customer_phone</code>, <code>period_months</code>, <code>description</code>, <code>expires_on</code>.</p><p class="bulk-muted">Amounts are never converted automatically. Confirm the country, currency and approved plan price before generating links.</p></section></div>
+<section class="bulk-card"><h2>3. Review batch</h2><p id="batchSummary">No rows loaded.</p><div class="bulk-table-wrap"><table class="bulk-table"><thead><tr><th>Row</th><th>Product</th><th>Customer</th><th>Country</th><th>Plan</th><th>Currency</th><th>Amount</th><th>Reference</th><th>Validation</th></tr></thead><tbody id="batchRows"><tr><td colspan="9">Upload a sheet to see a preview.</td></tr></tbody></table></div><div class="bulk-actions"><button id="generateLinks" class="bulk-primary" type="button" disabled>Generate payment links</button><button id="exportErrors" class="bulk-secondary" type="button" disabled>Export validated rows CSV</button></div><div id="bulkResult" aria-live="polite"></div></section>
+<section class="bulk-card"><h2>Payment security & live connection</h2><p>Live link creation must run through a protected backend function using the correct GlobalPay/Globpay merchant API and server-side credentials. This page never stores API secrets and never marks an upgrade paid based only on a redirect.</p><p class="bulk-muted">The backend must verify provider status or signed webhooks before activating Molan Business or Molan Chat upgrades. Until the provider and merchant account are confirmed and configured, this page can validate and export batches but cannot create genuine live payment links.</p></section>
+<footer class="dedicated-footer"><span>Built and managed by Zakmolanitech Solutions Company</span><span>Contacts for support via <a href="mailto:Zakmolanitechsolutions@gmail.com">Zakmolanitechsolutions@gmail.com</a></span></footer>
+</div></main>
+<script>
+(function(){
+ const $=id=>document.getElementById(id); let rows=[],session=null;
+ const required=['product','customer_name','country','plan','currency','amount','reference'];
+ const status=(id,msg,kind='warn')=>{$(id).className='bulk-status '+kind;$(id).textContent=msg;};
+ const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ async function init(){
+  try{
+   if(!window.ZakiTechSupabase) throw new Error('Secure Supabase client is unavailable.');
+   const {data,error}=await window.ZakiTechSupabase.auth.getSession(); if(error)throw error;
+   session=data.session;
+   if(!session){status('bulkSessionStatus','Sign in to ZakiTech before using billing operations.','err');$('generateLinks').disabled=true;return;}
+   $('pageUserLabel').textContent=session.user.email||'Signed in';
+   status('bulkSessionStatus','Signed in. Backend authorization is still required before any real payment links can be created.','ok');
+  }catch(e){status('bulkSessionStatus','Session check failed: '+e.message,'err');}
+ }
+ function normalize(r){const o={};Object.entries(r||{}).forEach(([k,v])=>o[String(k).trim().toLowerCase().replace(/[\s-]+/g,'_')]=typeof v==='string'?v.trim():v);return o;}
+ function validate(){
+  const errs=[]; rows=rows.map((raw,i)=>{const r=normalize(raw),e=[];required.forEach(k=>{if(r[k]===undefined||String(r[k]).trim()==='')e.push('Missing '+k);});
+   if(r.product&&!['molan business','molan chat'].includes(String(r.product).toLowerCase()))e.push('Unknown product');
+   if(r.amount!==undefined&&r.amount!==''&&(!Number.isFinite(Number(r.amount))||Number(r.amount)<=0))e.push('Amount must be positive');
+   if(r.currency&&!/^[A-Za-z]{3}$/.test(String(r.currency)))e.push('Currency must be a 3-letter code');
+   if(r.period_months!==undefined&&r.period_months!==''&&(!Number.isInteger(Number(r.period_months))||Number(r.period_months)<=0))e.push('period_months must be a positive integer');
+   if(r.expires_on&&isNaN(Date.parse(r.expires_on)))e.push('Invalid expires_on date');
+   return {...r,_row:i+2,_errors:e};});
+  const refs=new Set(); rows.forEach(r=>{const key=String(r.reference||'').toLowerCase();if(key&&refs.has(key))r._errors.push('Duplicate reference');if(key)refs.add(key);});
+  const bad=rows.filter(r=>r._errors.length).length;
+  $('batchSummary').textContent=rows.length+' row(s) loaded · '+(rows.length-bad)+' valid · '+bad+' with errors.';
+  $('batchRows').innerHTML=rows.map(r=>'<tr><td>'+r._row+'</td><td>'+escapeHtml(r.product)+'</td><td>'+escapeHtml(r.customer_name)+'</td><td>'+escapeHtml(r.country)+'</td><td>'+escapeHtml(r.plan)+'</td><td>'+escapeHtml(r.currency)+'</td><td>'+escapeHtml(r.amount)+'</td><td>'+escapeHtml(r.reference)+'</td><td>'+escapeHtml(r._errors.length?r._errors.join('; '):'Ready')+'</td></tr>').join('')||'<tr><td colspan="9">No data rows found.</td></tr>';
+  $('generateLinks').disabled=!session||rows.length===0||bad>0;
+  $('exportErrors').disabled=rows.length===0;
+  $('bulkValidation').innerHTML='<div class="bulk-status '+(bad?'err':'ok')+'">'+(bad?bad+' row(s) need corrections.':'All rows passed basic format checks.')+'</div>';
+ }
+ $('bulkFile').addEventListener('change',async ev=>{
+  rows=[]; const file=ev.target.files?.[0]; if(!file)return;
+  try{
+   const buf=await file.arrayBuffer(); let data;
+   if(/\.csv$/i.test(file.name)){const txt=new TextDecoder().decode(buf);const wb=XLSX.read(txt,{type:'string'});data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});}
+   else {const wb=XLSX.read(buf,{type:'array',cellDates:false});data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});}
+   rows=data; validate();
+  }catch(e){status('bulkValidation','Could not read file: '+e.message,'err');}
+ });
+ $('validateBatch').addEventListener('click',()=>{if(!rows.length){status('bulkValidation','Choose a CSV or Excel file first.','warn');return;}validate();});
+ $('clearBatch').addEventListener('click',()=>{rows=[];$('bulkFile').value='';$('batchRows').innerHTML='<tr><td colspan="9">Upload a sheet to see a preview.</td></tr>';$('batchSummary').textContent='No rows loaded.';$('bulkValidation').innerHTML='';$('bulkResult').innerHTML='';$('generateLinks').disabled=true;$('exportErrors').disabled=true;});
+ $('exportErrors').addEventListener('click',()=>{const clean=rows.map(({_row,_errors,...r})=>r);const csv=XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(clean));const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='payment-link-batch-validated.csv';a.click();URL.revokeObjectURL(a.href);});
+ $('generateLinks').addEventListener('click',async()=>{
+  if(!session||rows.some(r=>r._errors.length))return;
+  status('bulkResult','Checking secure payment backend…','warn');
+  try{
+   const payload=rows.map(({_row,_errors,...r})=>r);
+   const {data,error}=await window.ZakiTechSupabase.functions.invoke('bulk-payment-links',{body:{items:payload,products:['molan-business','molan-chat']}});
+   if(error)throw error;
+   if(!data||!Array.isArray(data.results))throw new Error('The backend did not return a verified results list.');
+   const csv=XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(data.results));
+   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='generated-payment-links.csv';a.click();URL.revokeObjectURL(a.href);
+   status('bulkResult','Backend returned '+data.results.length+' result(s). Review provider status before sending links.','ok');
+  }catch(e){status('bulkResult','Live generation is not configured or was rejected. No payment links were confirmed. Backend response: '+(e.message||String(e)),'err');}
+ });
+ $('pageSignOut')?.addEventListener('click',async()=>{await window.ZakiTechSupabase?.auth.signOut();location.href='index.html';});
+ init();
+})();
+</script></body></html>
