@@ -7,8 +7,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#06152b",
-  "theme_color": "#082d4b",
+  "background_color": "#f5f5f5",
+  "theme_color": "#0b1a2a",
   "icons": [
     {
       "src": "assets/images/zakitech-app-icon.svg",
