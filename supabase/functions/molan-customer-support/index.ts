@@ -45,7 +45,7 @@ Deno.serve(async(req:Request)=>{
   if(action==="reply"){
    const message=clean(b.message);if(!message)return reply(400,{error:"Write a reply before sending."});
    // Separate blank-line paragraphs become individual chat bubbles and each contributes one unread badge count.
-   const paragraphs=message.split(/\\n\\s*\\n+/).map((part:string)=>part.trim()).filter(Boolean);
+   const paragraphs=message.split(/\n\s*\n+/).map((part:string)=>part.trim()).filter(Boolean);
    const ins=await mol.from("support_messages").insert(paragraphs.map((body:string)=>({ticket_id:ticketId,sender_user_id:null,sender_role:"support",sender_name:actorName,body}))).select("id,ticket_id,sender_role,sender_name,body,created_at");if(ins.error)throw ins.error;
    const next=["resolved","closed"].includes(t.data.status)?t.data.status:"awaiting_customer";
    const up=await mol.from("support_tickets").update({status:next}).eq("id",ticketId);if(up.error)throw up.error;
