@@ -44,11 +44,13 @@ Deno.serve(async(req:Request)=>{
   }
   if(action==="reply"){
    const message=clean(b.message);if(!message)return reply(400,{error:"Write a reply before sending."});
-   const ins=await mol.from("support_messages").insert({ticket_id:ticketId,sender_user_id:null,sender_role:"support",sender_name:actorName,body:message}).select("id,ticket_id,sender_role,sender_name,body,created_at").single();if(ins.error)throw ins.error;
+   // Separate blank-line paragraphs become individual chat bubbles and each contributes one unread badge count.
+   const paragraphs=message.split(/\\n\\s*\\n+/).map((part:string)=>part.trim()).filter(Boolean);
+   const ins=await mol.from("support_messages").insert(paragraphs.map((body:string)=>({ticket_id:ticketId,sender_user_id:null,sender_role:"support",sender_name:actorName,body}))).select("id,ticket_id,sender_role,sender_name,body,created_at");if(ins.error)throw ins.error;
    const next=["resolved","closed"].includes(t.data.status)?t.data.status:"awaiting_customer";
    const up=await mol.from("support_tickets").update({status:next}).eq("id",ticketId);if(up.error)throw up.error;
-   await mol.from("support_ticket_events").insert({ticket_id:ticketId,actor_user_id:uid,actor_name:actorName,event_type:"support_reply",event_details:{message_id:ins.data.id}});
-   return reply(200,{message:ins.data,status:next});
+   await mol.from("support_ticket_events").insert({ticket_id:ticketId,actor_user_id:uid,actor_name:actorName,event_type:"support_reply",event_details:{message_ids:(ins.data||[]).map((m:any)=>m.id),paragraph_count:(ins.data||[]).length}});
+   return reply(200,{messages:ins.data||[],status:next});
   }
   if(action==="assign"){
    let assigneeId=uid,assigneeName=actorName;
