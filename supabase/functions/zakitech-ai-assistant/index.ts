@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
-import { evaluateAiRequest } from "../_shared/zakitech-ai-policy.ts";
+import { evaluateAiRequest } from "./policy.ts";
 
 const defaults = new Set([
   "https://zakpollyqueens.github.io",
