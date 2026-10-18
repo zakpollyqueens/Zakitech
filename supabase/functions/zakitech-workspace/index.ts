@@ -194,7 +194,7 @@ Deno.serve(async(req:Request)=>{
    const {data:task,error:te}=await db.from("zt_tasks").select("id,assigned_to,status").eq("id",id).maybeSingle();
    if(te||!task)return reply(404,{error:"Task not found."});
    if(isAdmin){
-    if(!["assigned","in_progress","submitted","completed","cancelled"].includes(status))return reply(400,{error:"Invalid task status."});
+    if(!["assigned","in_progress","submitted","completed","cancelled","blocked","on_hold","waiting_on_external"].includes(status))return reply(400,{error:"Invalid task status."});
     const updates:any={status,updated_at:new Date().toISOString()};
     if(status==="completed")updates.completed_at=new Date().toISOString();
     const {error}=await db.from("zt_tasks").update(updates).eq("id",id);if(error)throw Error("Could not update task.");
@@ -205,6 +205,7 @@ Deno.serve(async(req:Request)=>{
     if(status==="submitted")updates.submitted_at=new Date().toISOString();
     const {error}=await db.from("zt_tasks").update(updates).eq("id",id);if(error)throw Error("Could not update task.");
    }
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"task_status_updated",details:{task_id:id,previous_status:task.status,new_status:status}});
    return reply(200,{message:"Task updated."});
   }
   if(action==="save-announcement"){
