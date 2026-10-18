@@ -74,15 +74,19 @@ Deno.serve(async(req:Request)=>{
  const productExists=async(id:string)=>{const {data,error}=await db.from("zt_products").select("id").eq("id",id).maybeSingle();if(error||!data)throw Object.assign(Error("Product not found."),{status:404})};
  try{
   if(action==="bootstrap"){
-   const {data:products,error:pe}=await db.from("zt_products").select("*").neq("status","archived").order("created_at",{ascending:true});
-   if(pe)throw Error("Could not load the Product Hub.");
    let assignmentsQuery=db.from("zt_workstation_assignments").select("id,user_id,workstation,product_id,created_at").order("created_at",{ascending:false});
    if(!isAdmin&&actor.role!=="receptionist")assignmentsQuery=assignmentsQuery.eq("user_id",uid);
-   const {data:assignments,error:ae}=await assignmentsQuery;
-   if(ae)throw Error("Could not load your workstation assignments.");
    let tasksQuery=db.from("zt_tasks").select("*,product:zt_products(id,name,slug),assignee:zt_profiles!zt_tasks_assigned_to_exit_fkey(user_id,username,display_name)").order("created_at",{ascending:false}).limit(100);
    if(!isAdmin)tasksQuery=tasksQuery.eq("assigned_to",uid);
-   const {data:tasks,error:te}=await tasksQuery;if(te)throw Error("Could not load tasks and assignments.");
+   const [productsResult,assignmentsResult,tasksResult]=await Promise.all([
+    db.from("zt_products").select("*").neq("status","archived").order("created_at",{ascending:true}),
+    assignmentsQuery,
+    tasksQuery
+   ]);
+   const {data:products,error:pe}=productsResult;const {data:assignments,error:ae}=assignmentsResult;const {data:tasks,error:te}=tasksResult;
+   if(pe)throw Error("Could not load the Product Hub.");
+   if(ae)throw Error("Could not load your workstation assignments.");
+   if(te)throw Error("Could not load tasks and assignments.");
    const taskRows=tasks||[];
    const creatorIds=[...new Set(taskRows.map((t:any)=>t.created_by).filter(Boolean))];
    const creatorMap=new Map<string,any>();
@@ -96,24 +100,29 @@ Deno.serve(async(req:Request)=>{
     for(const [creatorId,creatorProfile] of creatorProfiles)creatorMap.set(creatorId,creatorProfile);
    }
    const tasksWithCreators=taskRows.map((t:any)=>({...t,creator:creatorMap.get(t.created_by)||null}));
-   const canAnnouncements=isAdmin||await hasAccess("announcements");
+   const canAnnouncements=isAdmin||(assignments||[]).some((a:any)=>a.workstation==="announcements"&&!a.product_id);
    let announcementsQuery=db.from("zt_announcements").select("*").order("created_at",{ascending:false}).limit(100);
    if(!canAnnouncements)announcementsQuery=announcementsQuery.eq("status","published");
-   const {data:announcements,error:ane}=await announcementsQuery;if(ane)throw Error("Could not load announcements.");
-   const canNotifications=isAdmin||await hasAccess("notifications");
+   const canNotifications=isAdmin||(assignments||[]).some((a:any)=>a.workstation==="notifications"&&!a.product_id);
    let notificationsQuery=db.from("zt_notifications").select("*,product:zt_products(id,name,slug)").order("created_at",{ascending:false}).limit(100);
    if(!canNotifications)notificationsQuery=notificationsQuery.eq("status","published");
-   const {data:notifications,error:ne}=await notificationsQuery;if(ne)throw Error("Could not load notifications.");
-   const canSupport=isAdmin||await hasAccess("support_inbox");
+   const canSupport=isAdmin||(assignments||[]).some((a:any)=>a.workstation==="support_inbox"&&!a.product_id);
    let messagesQuery=db.from("zt_product_messages").select("*,product:zt_products(id,name,slug),assignee:zt_profiles!zt_product_messages_assigned_to_fkey(user_id,username,display_name)").order("received_at",{ascending:false}).limit(100);
    if(!canSupport)messagesQuery=messagesQuery.or("assigned_to.eq."+uid+",assigned_to.is.null");
-   const {data:messages,error:me}=canSupport?await messagesQuery:{data:[],error:null};if(me)throw Error("Could not load product messages.");
    let buildsQuery=db.from("zt_product_builds").select("*,product:zt_products(id,name,slug)").order("created_at",{ascending:false}).limit(100);
    if(!isAdmin){
-    const allowedIds=(assignments||[]).filter(a=>a.workstation==="product_development"||a.workstation==="release_management").map(a=>a.product_id).filter(Boolean);
-    buildsQuery=buildsQuery.or("status.eq.published"+(allowedIds.length?","+allowedIds.map(id=>"product_id.eq."+id).join(","):""));
+    const allowedIds=(assignments||[]).filter((a:any)=>a.workstation==="product_development"||a.workstation==="release_management").map((a:any)=>a.product_id).filter(Boolean);
+    buildsQuery=buildsQuery.or("status.eq.published"+(allowedIds.length?","+allowedIds.map((id:string)=>"product_id.eq."+id).join(","):""));
    }
-   const {data:builds,error:be}=await buildsQuery;if(be)throw Error("Could not load product builds.");
+   const [announcementsResult,notificationsResult,messagesResult,buildsResult]=await Promise.all([
+    announcementsQuery,notificationsQuery,canSupport?messagesQuery:Promise.resolve({data:[],error:null}),buildsQuery
+   ]);
+   const {data:announcements,error:ane}=announcementsResult;const {data:notifications,error:ne}=notificationsResult;
+   const {data:messages,error:me}=messagesResult;const {data:builds,error:be}=buildsResult;
+   if(ane)throw Error("Could not load announcements.");
+   if(ne)throw Error("Could not load notifications.");
+   if(me)throw Error("Could not load product messages.");
+   if(be)throw Error("Could not load product builds.");
    let staff:any[]=[];
    if(isAdmin||actor.role==="receptionist"){
     const {data:s,error:se}=await db.from("zt_profiles").select("user_id,username,display_name,email,role,status,full_access,created_by,created_at,phone,avatar_path,onboarding_completed_at").order("display_name");
