@@ -130,3 +130,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid rgba(
 }
 @media(max-width:380px){.app-shell.show-signin .topbar-note{display:none}.app-shell.show-signin .signin-card{padding:24px 17px 21px}}
 @media(prefers-reduced-motion:reduce){.app-shell.show-signin .submit-button,.app-shell.show-signin .input-wrap{transition:none}}
+
+
+/* Cinematic welcome and sign-in polish */
+.app-shell{background:radial-gradient(ellipse at 48% 34%,#123b60 0%,#0a2544 39%,#06162c 82%);background-attachment:fixed}
+.app-shell:before{opacity:.14;background-size:46px 46px}
+.topbar{position:relative;z-index:2}
+.brand-mark{box-shadow:0 0 0 4px rgba(105,226,245,.06),0 8px 25px rgba(35,193,222,.18)}
+.welcome-content{animation:ztWelcomeRise .7s cubic-bezier(.2,.7,.2,1) both}
+.welcome-progress{overflow:hidden}
+.welcome-progress span{box-shadow:0 0 16px rgba(105,226,245,.5)}
+.signin-card{border-color:rgba(143,219,243,.24);box-shadow:0 35px 100px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.055);backdrop-filter:blur(18px)}
+.input-wrap{transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+.input-wrap:focus-within{border-color:rgba(105,226,245,.7);box-shadow:0 0 0 4px rgba(105,226,245,.08)}
+.submit-button{box-shadow:0 12px 28px rgba(35,193,222,.17)}
+.submit-button:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(35,193,222,.23)}
+@keyframes ztWelcomeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.welcome-content{animation:none}.submit-button:hover{transform:none}}
