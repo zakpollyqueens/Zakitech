@@ -25,9 +25,9 @@ function renderAI(){
   [
     ["Security policy","ACTIVE BASELINE","safe"],
     ["AI model","AWAITING CONFIGURATION","pending"],
-    ["JumlaPay","EXISTING INTEGRATION FOUND","safe"],
+    ["Juma Pay","EXISTING INTEGRATION FOUND","safe"],
     ["External publishing","APPROVAL REQUIRED","pending"]
-  ].forEach(([label,value,kind])=>{const c=el("article","ai-status-card");c.append(el("span","ai-status-label",label),el("strong","",value),el("small",kind,value==="ACTIVE BASELINE"?"Request policy committed to main":"Integration requires verification before activation"));statusGrid.append(c)});
+  ].forEach(([label,value,kind])=>{const c=el("article","ai-status-card");c.append(el("span","ai-status-label",label),el("strong","",value),el("small",kind,value==="ACTIVE BASELINE"?"Request policy committed to main":"Configure the approved model endpoint in server-side secrets"));statusGrid.append(c)});
   intro.append(statusGrid);
 
   const assistant=panel("Ask Molano AI","SECURE ASSISTANT CONSOLE","full");
@@ -74,7 +74,7 @@ function renderAI(){
   const checklist=el("ul","ops-checklist");
   [
     "Authenticated AI Edge Function deployed; confirm provider secrets and run a signed-in end-to-end test.",
-    "Verify the existing Mola Business JumlaPay webhook and checkout implementation before reusing payment status.",
+    "Verify the existing Mola Business Juma Pay webhook and checkout implementation before reusing payment status.",
     "Configure AI_PROVIDER_BASE_URL, AI_PROVIDER_API_KEY and AI_MODEL as server-side secrets; never put provider keys in browser code.",
     "Add approved product documentation and role-scoped read tools before enabling business actions.",
     "Run policy, authentication, abuse, rate-limit and deployment tests before production activation."
