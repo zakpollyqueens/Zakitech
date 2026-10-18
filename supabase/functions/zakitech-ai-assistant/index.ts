@@ -53,6 +53,20 @@ Deno.serve(async (req: Request) => {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return reply(req, 400, { error: "Invalid request body." }); }
+  if (body.action === "status") {
+    const providerKey = Deno.env.get("AI_PROVIDER_API_KEY") || "";
+    const baseUrl = Deno.env.get("AI_PROVIDER_BASE_URL") || "";
+    const model = Deno.env.get("AI_MODEL") || "";
+    return reply(req, 200, {
+      providerConfigured: Boolean(providerKey && baseUrl && model),
+      authenticated: true,
+      accountActive: true,
+      securityPolicy: "active",
+      auditLogging: "active",
+      status: providerKey && baseUrl && model ? "ready_for_test" : "awaiting_provider_configuration",
+    });
+  }
+
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (!message || message.length > 4000) return reply(req, 400, { error: "Enter a message up to 4,000 characters." });
 
