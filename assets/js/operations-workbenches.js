@@ -24,7 +24,7 @@ function renderAI(){
   const statusGrid=el("div","ai-status-grid");
   [
     ["Security policy","ACTIVE BASELINE","safe"],
-    ["AI model","SERVER CONFIGURED","pending"],
+    ["AI model","AWAITING CONFIGURATION","pending"],
     ["JumlaPay","EXISTING INTEGRATION FOUND","safe"],
     ["External publishing","APPROVAL REQUIRED","pending"]
   ].forEach(([label,value,kind])=>{const c=el("article","ai-status-card");c.append(el("span","ai-status-label",label),el("strong","",value),el("small",kind,value==="ACTIVE BASELINE"?"Request policy committed to main":"Integration requires verification before activation"));statusGrid.append(c)});
