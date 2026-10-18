@@ -19,18 +19,18 @@ function productActionCards(products){const g=el("div","ops-cards");products.for
 function renderWebsite(){const all=state.products||[],products=all.filter(p=>isBusiness(p)||isChat(p));$("opsMetrics").replaceChildren(metric("Product projects",String(products.length),"Molan Business & Molan Chat"),metric("Build records",String(state.builds.length),"Submitted and published builds"),metric("Open work items",String(state.tasks.filter(t=>!["completed","cancelled"].includes(t.status)).length),"Authorized tasks"));const a=panel("Product production pipelines","DELIVERY PORTFOLIO","full");a.append(el("p","","Select a product to open its development workflow, repository, release desk and deployment destination. Build uploads remain subject to existing role and product workstation permissions."));a.append(productActionCards(products));const b=panel("Website delivery checklist","FROM BRIEF TO VERIFIED LIVE SITE");const list=el("ul","ops-checklist");["Collect business name, publishable content, contact details, service list, location and approved brand assets.","Confirm the chosen plan, payment arrangement and delivery milestones in the authorized project workflow.","Build responsive pages and verify navigation, forms, contact buttons and mobile layout.","Publish through the configured repository/deployment workflow and verify the public HTTPS URL.","Record the deployed URL, release notes, owner and next maintenance task."].forEach(x=>list.append(el("li","",x)));b.append(list);const c=panel("Production shortcuts","TOOLS & OWNERSHIP");c.append(el("p","","Use the existing development workspace to submit product builds, manage milestones and work with authorized assignments. Website image publishing and live deployment depend on the connected repository and hosting configuration."));const shortcuts=el("div","ops-card-actions");[["Product development","development.html"],["Molan Business Control","molan-business-control.html"],["Tasks & blockers","product-blockers.html"],["Release review","release-review.html"],["Support center","product-support.html"]].forEach(x=>shortcuts.append(link(x[0],x[1])));c.append(shortcuts);$("opsContent").replaceChildren(a,b,c)}
 function renderAI(){
   const root=el("div","ops-content ai-studio-layout");
-  const intro=panel("Your governed AI workspace","ZAKITECH AI · EARLY ACCESS","full");
-  intro.append(el("p","","One assistant for product support, staff coordination, approved company workflows, website development and advertising. The assistant is not a superuser: confidential files are excluded by default, destructive controls are never exposed, and consequential actions require approval."));
+  const intro=panel("Molano AI workspace","MOLANO AI · SECURE EARLY ACCESS","full");
+  intro.append(el("p","","Molano AI is the company assistant for product support, staff coordination, approved workflows, website development and advertising. The assistant is not a superuser: confidential files are excluded by default, destructive controls are never exposed, and consequential actions require approval."));
   const statusGrid=el("div","ai-status-grid");
   [
     ["Security policy","ACTIVE BASELINE","safe"],
-    ["AI model","NOT CONNECTED","pending"],
+    ["AI model","SERVER CONFIGURED","pending"],
     ["JumlaPay","EXISTING INTEGRATION FOUND","safe"],
     ["External publishing","APPROVAL REQUIRED","pending"]
   ].forEach(([label,value,kind])=>{const c=el("article","ai-status-card");c.append(el("span","ai-status-label",label),el("strong","",value),el("small",kind,value==="ACTIVE BASELINE"?"Request policy committed to main":"Integration requires verification before activation"));statusGrid.append(c)});
   intro.append(statusGrid);
 
-  const assistant=panel("Ask ZakiTech AI","SECURE ASSISTANT CONSOLE","full");
+  const assistant=panel("Ask Molano AI","SECURE ASSISTANT CONSOLE","full");
   const guard=el("div","ai-guardrail-banner");
   guard.append(el("span","ai-guardrail-icon","✦"),el("div"));
   guard.lastChild.append(el("strong","","Protected by company policy"),el("p","","The server checks your signed-in session and blocks prohibited requests. This interface will not claim an AI answer until a model provider is configured and the backend confirms a successful response."));
@@ -40,7 +40,7 @@ function renderAI(){
   const textarea=el("textarea","ai-message-input");textarea.id="ztAiMessage";textarea.name="message";textarea.rows=3;textarea.maxLength=4000;textarea.required=true;textarea.placeholder="Ask about an approved product, draft a support response, plan a website, or prepare an advertising campaign…";
   const row=el("div","ai-chat-actions");
   const hint=el("small","ai-muted","Do not enter passwords, secret keys or confidential document contents.");
-  const send=el("button","ops-button primary","Check request");send.type="submit";
+  const send=el("button","ops-button primary","Ask Molano AI");send.type="submit";
   row.append(hint,send);chat.append(label,textarea,row);
   const response=el("div","ai-response-box");response.id="ztAiResponse";response.hidden=true;response.setAttribute("role","status");response.setAttribute("aria-live","polite");
   assistant.append(chat,response);
@@ -73,9 +73,9 @@ function renderAI(){
   const next=panel("Connection checklist","SAFE ACTIVATION");
   const checklist=el("ul","ops-checklist");
   [
-    "Connect this page to the new authenticated Edge Function and verify its policy/audit schema.",
+    "Authenticated AI Edge Function deployed; confirm provider secrets and run a signed-in end-to-end test.",
     "Verify the existing Mola Business JumlaPay webhook and checkout implementation before reusing payment status.",
-    "Choose and configure a self-hosted model endpoint; keep all credentials in server-side secrets.",
+    "Configure AI_PROVIDER_BASE_URL, AI_PROVIDER_API_KEY and AI_MODEL as server-side secrets; never put provider keys in browser code.",
     "Add approved product documentation and role-scoped read tools before enabling business actions.",
     "Run policy, authentication, abuse, rate-limit and deployment tests before production activation."
   ].forEach(x=>checklist.append(el("li","pending",x)));
@@ -86,13 +86,13 @@ function renderAI(){
   chat.addEventListener("submit",async event=>{
     event.preventDefault();
     const message=textarea.value.trim();if(!message)return;
-    response.hidden=false;response.replaceChildren(el("strong","","Checking request safely…"),el("p","","No external model will receive your message unless an approved provider is configured."));
+    response.hidden=false;response.replaceChildren(el("strong","","Preparing secure request…"),el("p","","No external model will receive your message unless an approved provider is configured."));
     send.disabled=true;send.textContent="Checking…";
     try{
       if(!window.ZakiTechSupabase||typeof window.ZakiTechSupabase.functions?.invoke!=="function")throw new Error("Secure backend client is not ready. Please sign in again or reload the workspace.");
       const {data,error}=await window.ZakiTechSupabase.functions.invoke("zakitech-ai-assistant",{body:{message}});
       if(error){let msg=error.message||"The assistant endpoint is not available yet.";try{const ctx=error.context;if(ctx&&typeof ctx.json==="function"){const j=await ctx.json();if(j?.message)msg=j.message;}}catch(_){}throw new Error(msg);}
-      response.replaceChildren(el("strong","",data?.blocked?"Request blocked by security policy":data?.providerConfigured?"Assistant response":"AI provider not connected"),el("p","",data?.message||data?.response||"The server returned no assistant response."));
+      response.replaceChildren(el("strong","",data?.blocked?"Request blocked by security policy":data?.providerConfigured?"Assistant response":"Molano AI is not configured"),el("p","",data?.message||data?.response||"The server returned no assistant response."));
     }catch(error){response.replaceChildren(el("strong","","Assistant is not ready yet"),el("p","",String(error?.message||"The secure AI service could not be reached.")),el("small","ai-muted","This is not a model-generated answer. Your message was not automatically sent to another AI provider."));}
     finally{send.disabled=false;send.textContent="Check request";}
   });
