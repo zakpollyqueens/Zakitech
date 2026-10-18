@@ -14,11 +14,16 @@ jobs:
           node-version: 20
       - name: Validate control-center JavaScript syntax
         run: node --check assets/js/molan-business-control.js
+      - name: Validate Product Operations Station JavaScript syntax
+        run: node --check assets/js/product-station.js
       - name: Validate required control-center assets
         run: |
           test -s molan-business-control.html
           test -s assets/js/molan-business-control.js
           test -s assets/css/molan-business-control.css
+          test -s product-station.html
+          test -s assets/js/product-station.js
+          test -s assets/css/product-station.css
       - name: Check page wiring and secure backend actions
         run: |
           node <<'NODE'
@@ -26,6 +31,9 @@ jobs:
           const html = fs.readFileSync('molan-business-control.html', 'utf8');
           const js = fs.readFileSync('assets/js/molan-business-control.js', 'utf8');
           const backend = fs.readFileSync('supabase/functions/zakitech-workspace/index.ts', 'utf8');
+          const stationHtml = fs.readFileSync('product-station.html', 'utf8');
+          const stationJs = fs.readFileSync('assets/js/product-station.js', 'utf8');
+          const productHub = fs.readFileSync('product-hub.html', 'utf8');
           for (const file of ['assets/js/supabase-config.js','assets/js/workspace-navigation.js','assets/js/molan-business-control.js']) {
             if (!html.includes(file)) throw new Error('Missing control-center script: ' + file);
           }
@@ -35,5 +43,11 @@ jobs:
           if (!js.includes('zakitech-workspace')) throw new Error('Control center must use the authenticated backend.');
           if (/service_role|SUPABASE_SERVICE_ROLE_KEY/i.test(js)) throw new Error('A server secret must never be shipped to the browser.');
           if (!backend.includes('requireLeadership();') || !backend.includes('molan_business_control_item_created')) throw new Error('Leadership checks and audit events are required.');
-          console.log('Molan Business Control Center wiring and security smoke checks passed.');
+          for (const file of ['assets/js/supabase-config.js','assets/js/workspace-navigation.js','assets/js/product-station.js','assets/css/product-station.css']) {
+            if (!stationHtml.includes(file)) throw new Error('Missing Product Operations Station asset: ' + file);
+          }
+          if (!productHub.includes('product-station.html')) throw new Error('Product Hub must link to the Product Operations Station.');
+          if (!stationJs.includes('action:"bootstrap"') || !stationJs.includes('development.html?product_id=')) throw new Error('Station must load authorized workspace data and offer selected-product build uploads.');
+          if (/service_role|SUPABASE_SERVICE_ROLE_KEY/i.test(stationJs)) throw new Error('A server secret must never be shipped to the browser.');
+          console.log('Molan Business Control Center and Product Operations Station smoke checks passed.');
           NODE
