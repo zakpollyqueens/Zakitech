@@ -135,7 +135,7 @@ function renderAI(){
       if(error){let msg=error.message||"The assistant endpoint is not available yet.";try{const ctx=error.context;if(ctx&&typeof ctx.json==="function"){const j=await ctx.json();if(j?.message)msg=j.message;}}catch(_){}throw new Error(msg);}
       response.replaceChildren(el("strong","",data?.blocked?"Request blocked by security policy":data?.providerConfigured?"Assistant response":"Molano AI is not configured"),el("p","",data?.message||data?.response||"The server returned no assistant response."));
     }catch(error){response.replaceChildren(el("strong","","Assistant is not ready yet"),el("p","",String(error?.message||"The secure AI service could not be reached.")),el("small","ai-muted","This is not a model-generated answer. Your message was not automatically sent to another AI provider."));}
-    finally{send.disabled=false;send.textContent="Check request";}
+    finally{send.disabled=false;send.textContent="Ask Molano AI";}
   });
 
   adForm.addEventListener("submit",event=>{
