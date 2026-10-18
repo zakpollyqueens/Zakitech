@@ -88,11 +88,12 @@ Deno.serve(async(req:Request)=>{
    const creatorMap=new Map<string,any>();
    if(creatorIds.length){
     const {data:creators}=await db.from("zt_profiles").select("user_id,username,display_name,avatar_path").in("user_id",creatorIds);
-    for(const creator of creators||[]){
+    const creatorProfiles=await Promise.all((creators||[]).map(async(creator:any)=>{
      let avatar_url=null;
      if(creator.avatar_path){const {data:signed}=await db.storage.from("zt-profile-avatars").createSignedUrl(creator.avatar_path,3600);avatar_url=signed?.signedUrl||null}
-     creatorMap.set(creator.user_id,{user_id:creator.user_id,username:creator.username,display_name:creator.display_name,avatar_url});
-    }
+     return [creator.user_id,{user_id:creator.user_id,username:creator.username,display_name:creator.display_name,avatar_url}] as const;
+    }));
+    for(const [creatorId,creatorProfile] of creatorProfiles)creatorMap.set(creatorId,creatorProfile);
    }
    const tasksWithCreators=taskRows.map((t:any)=>({...t,creator:creatorMap.get(t.created_by)||null}));
    const canAnnouncements=isAdmin||await hasAccess("announcements");
