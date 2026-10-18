@@ -16,6 +16,8 @@ jobs:
         run: node --check assets/js/molan-business-control.js
       - name: Validate Product Operations Station JavaScript syntax
         run: node --check assets/js/product-station.js
+      - name: Validate operations workbench JavaScript syntax
+        run: node --check assets/js/operations-workbenches.js
       - name: Validate required control-center assets
         run: |
           test -s molan-business-control.html
@@ -24,6 +26,13 @@ jobs:
           test -s product-station.html
           test -s assets/js/product-station.js
           test -s assets/css/product-station.css
+          test -s assets/js/operations-workbenches.js
+          test -s assets/css/operations-workbenches.css
+          test -s website-production.html
+          test -s ai-operations.html
+          test -s product-security.html
+          test -s product-blockers.html
+          test -s product-help-center.html
       - name: Check page wiring and secure backend actions
         run: |
           node <<'NODE'
@@ -34,6 +43,8 @@ jobs:
           const stationHtml = fs.readFileSync('product-station.html', 'utf8');
           const stationJs = fs.readFileSync('assets/js/product-station.js', 'utf8');
           const productHub = fs.readFileSync('product-hub.html', 'utf8');
+          const nav = fs.readFileSync('assets/js/workspace-navigation.js', 'utf8');
+          const opsJs = fs.readFileSync('assets/js/operations-workbenches.js', 'utf8');
           for (const file of ['assets/js/supabase-config.js','assets/js/workspace-navigation.js','assets/js/molan-business-control.js']) {
             if (!html.includes(file)) throw new Error('Missing control-center script: ' + file);
           }
@@ -49,5 +60,17 @@ jobs:
           if (!productHub.includes('product-station.html')) throw new Error('Product Hub must link to the Product Operations Station.');
           if (!stationJs.includes('action:"bootstrap"') || !stationJs.includes('development.html?product_id=')) throw new Error('Station must load authorized workspace data and offer selected-product build uploads.');
           if (/service_role|SUPABASE_SERVICE_ROLE_KEY/i.test(stationJs)) throw new Error('A server secret must never be shipped to the browser.');
-          console.log('Molan Business Control Center and Product Operations Station smoke checks passed.');
+          for (const [file,key] of [['website-production.html','website'],['ai-operations.html','ai'],['product-security.html','security'],['product-blockers.html','blockers'],['product-help-center.html','help']]) {
+            const page = fs.readFileSync(file, 'utf8');
+            if (!page.includes('assets/js/operations-workbenches.js') || !page.includes('data-ops-page="' + key + '"')) throw new Error('Operations page is not wired: ' + file);
+          }
+          for (const file of ['website-production.html','ai-operations.html','product-security.html','product-blockers.html','product-help-center.html']) {
+            if (!nav.includes(file)) throw new Error('Missing workspace navigation link: ' + file);
+          }
+          if (!opsJs.includes('zakitech-workspace') || !opsJs.includes('action:"bootstrap"')) throw new Error('Operations workbenches must load authenticated workspace data.');
+          if (/service_role|SUPABASE_SERVICE_ROLE_KEY/i.test(opsJs)) throw new Error('A server secret must never be shipped to the browser.');
+          for (const file of ['product-help-center.html','website-production.html','product-blockers.html','product-security.html','ai-operations.html']) {
+            if (!stationHtml.includes(file)) throw new Error('Product Operations Station must link to ' + file);
+          }
+          console.log('Molan Business Control Center and all Product Operations Station workbenches passed smoke checks.');
           NODE
