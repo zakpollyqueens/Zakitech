@@ -29,6 +29,9 @@ function renderAI(){
     ["External publishing","APPROVAL REQUIRED","pending"]
   ].forEach(([label,value,kind])=>{const c=el("article","ai-status-card");c.append(el("span","ai-status-label",label),el("strong","",value),el("small",kind,value==="ACTIVE BASELINE"?"Request policy committed to main":"Configure the approved model endpoint in server-side secrets"));statusGrid.append(c)});
   intro.append(statusGrid);
+  const modelStatusCard=statusGrid.children[1];
+  const modelStatusValue=modelStatusCard?.querySelector("strong");
+  const modelStatusDetail=modelStatusCard?.querySelector("small");
 
   const assistant=panel("Ask Molano AI","SECURE ASSISTANT CONSOLE","full");
   const guard=el("div","ai-guardrail-banner");
@@ -80,8 +83,46 @@ function renderAI(){
     "Run policy, authentication, abuse, rate-limit and deployment tests before production activation."
   ].forEach(x=>checklist.append(el("li","pending",x)));
   next.append(checklist);
+  const statusActions=el("div","ops-card-actions");
+  const checkModel=el("button","ops-button secondary","Check model connection");
+  checkModel.type="button";
+  const statusNote=el("p","ai-muted","Connection checks require a signed-in, active company account.");
+  statusActions.append(checkModel);
+  next.append(statusActions,statusNote);
   root.append(intro,assistant,ads,rules,next);
   $("opsContent").replaceChildren(root);
+
+  async function refreshModelStatus(){
+    checkModel.disabled=true;
+    checkModel.textContent="Checking securely…";
+    if(modelStatusValue)modelStatusValue.textContent="CHECKING";
+    if(modelStatusDetail)modelStatusDetail.textContent="Verifying authenticated backend readiness";
+    try{
+      if(!window.ZakiTechSupabase||typeof window.ZakiTechSupabase.functions?.invoke!=="function")throw new Error("Secure backend client is not ready. Sign in and reload.");
+      const {data,error}=await window.ZakiTechSupabase.functions.invoke("zakitech-ai-assistant",{body:{action:"status"}});
+      if(error)throw error;
+      if(!data?.authenticated)throw new Error("Sign-in required.");
+      if(data.providerConfigured){
+        if(modelStatusValue)modelStatusValue.textContent="READY FOR TEST";
+        if(modelStatusDetail)modelStatusDetail.textContent="Provider secrets are present; a signed-in chat test is still required.";
+        statusNote.textContent="Provider configuration detected. Send a harmless test message to confirm the model endpoint responds.";
+        statusNote.className="ai-muted";
+      }else{
+        if(modelStatusValue)modelStatusValue.textContent="AWAITING CONFIGURATION";
+        if(modelStatusDetail)modelStatusDetail.textContent="Server-side model endpoint secrets are not all present.";
+        statusNote.textContent="The security gateway is reachable, but AI_PROVIDER_BASE_URL, AI_PROVIDER_API_KEY and AI_MODEL still need server-side configuration.";
+      }
+    }catch(error){
+      if(modelStatusValue)modelStatusValue.textContent="CHECK REQUIRED";
+      if(modelStatusDetail)modelStatusDetail.textContent="Unable to verify the secure connection.";
+      statusNote.textContent=String(error?.message||"Secure connection check failed.");
+    }finally{
+      checkModel.disabled=false;
+      checkModel.textContent="Check model connection";
+    }
+  }
+  checkModel.addEventListener("click",refreshModelStatus);
+  refreshModelStatus();
 
   chat.addEventListener("submit",async event=>{
     event.preventDefault();
