@@ -4,10 +4,7 @@ export type AiPolicyDecision = {
   reason: string;
 };
 
-/**
- * Conservative first-pass filter only. This is not an authorization system.
- * All reads and actions still require independent server-side permission checks.
- */
+/** Conservative intent filter; it is not a substitute for authorization. */
 export function evaluateAiRequest(input: string): AiPolicyDecision {
   const text = String(input || "").normalize("NFKC").toLowerCase();
   const destructive = [
@@ -19,7 +16,6 @@ export function evaluateAiRequest(input: string): AiPolicyDecision {
     allowed: false, category: "destructive_action",
     reason: "The AI cannot delete, deactivate, archive, disable, or take down company assets. Use the authorized manual governance process.",
   };
-
   const confidential = [
     /\b(show|reveal|dump|export|send|read|open|download|list|expose|retrieve)\b.{0,120}\b(confidential|secret|private key|service role|service-role|api key|access token|payroll file|private file|restricted document|board document|legal document)\b/,
     /\b(confidential|secret|private key|service role|service-role|api key|access token|payroll|private customer file|restricted document)\b.{0,100}\b(contents|content|full text|raw data|all records|download|export)\b/,
@@ -29,7 +25,6 @@ export function evaluateAiRequest(input: string): AiPolicyDecision {
     allowed: false, category: "confidential_data",
     reason: "The AI cannot access or disclose confidential files, credentials, secrets, or restricted records. Use an approved secure workflow.",
   };
-
   const bypass = [
     /\b(bypass|disable|override|ignore)\b.{0,80}\b(security|permission|role check|approval|audit|payment verification|authentication|access control)\b/,
     /\b(grant yourself|make yourself|escalate yourself)\b.{0,80}\b(admin|owner|full access|permission|privilege)\b/,
@@ -38,9 +33,5 @@ export function evaluateAiRequest(input: string): AiPolicyDecision {
     allowed: false, category: "security_bypass",
     reason: "The AI cannot bypass security checks, approvals, or permission boundaries.",
   };
-
-  return {
-    allowed: true, category: "safe_assistance",
-    reason: "No prohibited intent was detected by this first-pass filter. Server-side authorization is still required.",
-  };
+  return { allowed: true, category: "safe_assistance", reason: "No prohibited intent was detected by this first-pass filter. Server-side authorization is still required." };
 }
