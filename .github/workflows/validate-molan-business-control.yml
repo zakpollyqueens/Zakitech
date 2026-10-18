@@ -27,6 +27,7 @@ jobs:
           test -s assets/js/product-station.js
           test -s assets/css/product-station.css
           test -s assets/js/operations-workbenches.js
+          test -s supabase/migrations/20261018100000_task_blocker_states.sql
           test -s assets/css/operations-workbenches.css
           test -s website-production.html
           test -s ai-operations.html
@@ -45,6 +46,9 @@ jobs:
           const productHub = fs.readFileSync('product-hub.html', 'utf8');
           const nav = fs.readFileSync('assets/js/workspace-navigation.js', 'utf8');
           const opsJs = fs.readFileSync('assets/js/operations-workbenches.js', 'utf8');
+          const taskJs = fs.readFileSync('assets/js/workspace-pages.js', 'utf8');
+          const taskBackend = fs.readFileSync('supabase/functions/zakitech-workspace/index.ts', 'utf8');
+          const blockerMigration = fs.readFileSync('supabase/migrations/20261018100000_task_blocker_states.sql', 'utf8');
           for (const file of ['assets/js/supabase-config.js','assets/js/workspace-navigation.js','assets/js/molan-business-control.js']) {
             if (!html.includes(file)) throw new Error('Missing control-center script: ' + file);
           }
@@ -69,6 +73,10 @@ jobs:
           }
           if (!opsJs.includes('zakitech-workspace') || !opsJs.includes('action:"bootstrap"')) throw new Error('Operations workbenches must load authenticated workspace data.');
           if (/service_role|SUPABASE_SERVICE_ROLE_KEY/i.test(opsJs)) throw new Error('A server secret must never be shipped to the browser.');
+          for (const status of ['blocked','on_hold','waiting_on_external']) {
+            if (!taskBackend.includes(status) || !taskJs.includes(status) || !blockerMigration.includes(status)) throw new Error('Missing end-to-end task blocker state: ' + status);
+          }
+          if (!taskBackend.includes('event_type:"task_status_updated"')) throw new Error('Task status changes must be audited.');
           for (const file of ['product-help-center.html','website-production.html','product-blockers.html','product-security.html','ai-operations.html']) {
             if (!stationHtml.includes(file)) throw new Error('Product Operations Station must link to ' + file);
           }
