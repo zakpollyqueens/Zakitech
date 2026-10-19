@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
       const requestId = typeof body.request_id === "string" ? body.request_id : "";
       const buildAction = body.build_action === "publish" ? "publish" : body.build_action === "build" ? "build" : "";
       if (!/^[0-9a-f-]{36}$/i.test(requestId) || !buildAction) return respond(400, { error: "Choose a valid website request and build action." });
-      const base = molanUrl.replace(/\\/+$/, "");
+      const base = molanUrl.endsWith("/") ? molanUrl.slice(0, -1) : molanUrl;
       const upstream = await fetch(base + "/functions/v1/website-service-builder", {
         method: "POST",
         headers: { Authorization: "Bearer " + molanServiceKey, apikey: molanServiceKey, "Content-Type": "application/json" },
