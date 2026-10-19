@@ -37,15 +37,80 @@ Deno.serve(async (req: Request) => {
       .select("user_id,display_name,role,status,full_access")
       .eq("user_id", authData.user.id).maybeSingle();
     if (actorError || !actor || actor.status !== "active") return respond(403, { error: "Your ZakiTech account is not active." });
-    if (!allowedRoles.has(actor.role) && actor.full_access !== true) {
-      return respond(403, { error: "Your role is not authorized to access customer support." });
-    }
-
     let body: Record<string, unknown>;
     try { body = await req.json(); } catch { return respond(400, { error: "Invalid request body." }); }
     const action = typeof body.action === "string" ? body.action : "";
     const ticketId = typeof body.ticket_id === "string" ? body.ticket_id : "";
     const actorName = actor.display_name || authData.user.email || "ZakiTech Support";
+    const websiteReadRoles = new Set(["owner","vice_admin","operations_officer","support_officer","web_developer","application_developer","engineer","release_manager"]);
+    const websiteBuildRoles = new Set(["owner","vice_admin","operations_officer","web_developer","application_developer","engineer"]);
+    if (action === "website_requests" || action === "website_build") {
+      const permitted = action === "website_build" ? websiteBuildRoles : websiteReadRoles;
+      if (!permitted.has(actor.role) && actor.full_access !== true) return respond(403, { error: "Your role is not authorized to manage website production." });
+    } else if (!allowedRoles.has(actor.role) && actor.full_access !== true) {
+      return respond(403, { error: "Your role is not authorized to access customer support." });
+    }
+
+    if (action === "website_requests") {
+      const { data: requests, error: requestError } = await molan.from("website_service_requests")
+        .select("id,company_id,requested_by,package_code,package_amount,package_currency_code,payment_plan,status,payment_status,deposit_amount,balance_amount,public_business_name,business_name,business_brief,website_feel,public_information,public_contacts,business_location,preferred_domain,requested_features,created_at,updated_at,delivered_website_url,voice_note_path")
+        .order("created_at", { ascending: false }).limit(250);
+      if (requestError) return respond(500, { error: "Could not load website orders from Molan Business." });
+      const rows = requests || [];
+      const ids = rows.map((r: any) => r.id);
+      let jobs: any[] = [], payments: any[] = [];
+      if (ids.length) {
+        const [jobResult, paymentResult] = await Promise.all([
+          molan.from("website_service_build_jobs").select("request_id,status,progress_percent,progress_message,created_at,updated_at,completed_at").in("request_id", ids),
+          molan.from("website_service_checkout_payments").select("request_id,status,amount,currency_code,provider_metadata,created_at,verified_at").in("request_id", ids).order("created_at", { ascending: false }).limit(500),
+        ]);
+        if (jobResult.error) return respond(500, { error: "Could not load website build progress." });
+        if (paymentResult.error) return respond(500, { error: "Could not load verified website payment records." });
+        jobs = jobResult.data || [];
+        payments = paymentResult.data || [];
+      }
+      const jobMap = new Map(jobs.map((j: any) => [j.request_id, j]));
+      const paymentMap = new Map<string, any[]>();
+      for (const p of payments) paymentMap.set(p.request_id, [...(paymentMap.get(p.request_id) || []), p]);
+      const result = rows.map((r: any) => {
+        const ps = paymentMap.get(r.id) || [];
+        const verified = ps.filter((p: any) => p.status === "verified");
+        return {
+          ...r,
+          delivered_website_url: r.payment_status === "paid" ? r.delivered_website_url : null,
+          build_job: jobMap.get(r.id) || null,
+          payment_summary: {
+            verified_deposit: verified.some((p: any) => p.provider_metadata?.payment_stage === "deposit"),
+            verified_balance: verified.some((p: any) => p.provider_metadata?.payment_stage === "balance"),
+            latest_status: ps[0]?.status || "not_started",
+            latest_amount: ps[0]?.amount ?? null,
+            latest_currency: ps[0]?.currency_code ?? null,
+          },
+        };
+      });
+      return respond(200, { requests: result, actor: { id: actor.user_id, name: actorName, role: actor.role } });
+    }
+
+    if (action === "website_build") {
+      const requestId = typeof body.request_id === "string" ? body.request_id : "";
+      const buildAction = body.build_action === "publish" ? "publish" : body.build_action === "build" ? "build" : "";
+      if (!/^[0-9a-f-]{36}$/i.test(requestId) || !buildAction) return respond(400, { error: "Choose a valid website request and build action." });
+      const base = molanUrl.replace(/\\/+$/, "");
+      const upstream = await fetch(base + "/functions/v1/website-service-builder", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + molanServiceKey, apikey: molanServiceKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: buildAction, request_id: requestId }),
+      });
+      const result = await upstream.json().catch(() => ({}));
+      const { error: auditError } = await zt.from("zt_audit_events").insert({
+        actor_user_id: actor.user_id,
+        event_type: "website_service_" + buildAction + "_requested",
+        details: { request_id: requestId, build_action: buildAction, result_status: result?.status || (upstream.ok ? "accepted" : "failed"), role: actor.role },
+      });
+      if (auditError) console.error("Website production audit event could not be saved:", auditError.message);
+      if (!upstream.ok || result?.success !== true) return respond(upstream.status || 502, { error: result?.error || "The website workflow could not complete this action.", status: result?.status || "pending" });
+      return respond(200, { ...result, message: buildAction === "build" ? "Website build request processed." : "Website publication request processed." });
+    }
 
     if (action === "bootstrap") {
       const { data: tickets, error } = await molan.from("support_tickets")
