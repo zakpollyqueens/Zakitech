@@ -596,3 +596,30 @@ body{background:radial-gradient(ellipse at 78% -8%,rgba(91,37,173,.16),transpare
 .page-message{padding:0 2px}
 @media(min-width:1100px){.workspace-nav{box-shadow:8px 0 34px rgba(0,0,0,.14)}.metric-grid{gap:16px}.dashboard-analytics-grid{gap:16px}}
 @media(max-width:700px){.workspace-main{width:calc(100% - 24px);margin:18px auto 28px}.workspace-topbar{padding:0 14px}.role-badge{display:none}.dashboard-banner{border-radius:17px}.dashboard-widget,.analytics-widget{padding:17px}}
+
+
+/* Reference-style dashboard information organization */
+.reference-overview-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.92fr);gap:18px;margin:18px 0 22px;align-items:stretch}
+.reference-overview-grid>.dashboard-widget{min-width:0;margin:0;padding:22px;border:1px solid rgba(155,174,211,.14);border-radius:17px;background:linear-gradient(145deg,rgba(17,23,36,.98),rgba(11,16,27,.98))}
+.reference-overview-grid .widget-heading{margin-bottom:18px}
+.reference-overview-grid .widget-heading h2{margin:0;font-size:1.12rem;letter-spacing:-.025em}
+.reference-overview-grid .widget-heading p{margin:5px 0 0;color:#98a6bc;font-size:.78rem}
+.reference-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.reference-shortcut{display:flex;min-height:118px;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:9px;padding:15px 12px;border:1px solid rgba(155,174,211,.13);border-radius:12px;background:linear-gradient(155deg,rgba(20,27,43,.8),rgba(10,15,26,.7));text-decoration:none;color:#f2f4ff;transition:transform .18s,border-color .18s,background .18s}
+.reference-shortcut:hover{transform:translateY(-3px);border-color:rgba(163,77,255,.48);background:rgba(117,57,194,.1)}
+.shortcut-symbol{display:grid;place-items:center;width:39px;height:39px;border-radius:11px;font-size:1.35rem;background:rgba(255,255,255,.05)}
+.shortcut-blue{color:#4ea9ff;background:rgba(49,143,255,.14)}.shortcut-green{color:#1ee89a;background:rgba(0,217,129,.12)}.shortcut-gold{color:#ffbd35;background:rgba(255,189,53,.12)}.shortcut-purple{color:#bd7cff;background:rgba(163,77,255,.15)}.shortcut-cyan{color:#32d9e7;background:rgba(50,217,231,.12)}.shortcut-muted{color:#c1cadb;background:rgba(176,191,216,.1)}
+.reference-shortcut strong{font-size:.76rem;line-height:1.35}.reference-shortcut small{font-size:.68rem;color:#95a3b8;line-height:1.4}
+.reference-company-info .widget-heading{align-items:center}
+.company-info-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:11px;background:linear-gradient(145deg,#a34dff,#5120b8);font-size:1.5rem;font-weight:800;color:white}
+.reference-company-brand{display:flex;align-items:center;gap:13px;padding:2px 0 16px;border-bottom:1px solid rgba(155,174,211,.1)}
+.reference-company-brand img{width:56px;height:56px;object-fit:contain;padding:7px;border-radius:11px;background:rgba(163,77,255,.12)}
+.reference-company-brand h3{margin:0;font-size:.95rem;line-height:1.4}.reference-company-brand p{margin:4px 0 0;color:#b783ff;font-size:.76rem}
+.reference-company-description{margin:14px 0;color:#a6b1c5;font-size:.78rem;line-height:1.7}
+.reference-company-rows{display:grid;gap:0}
+.reference-company-rows>div{display:grid;grid-template-columns:20px minmax(90px,.8fr) minmax(0,1.2fr);align-items:center;gap:8px;padding:11px 0;border-top:1px solid rgba(155,174,211,.08);font-size:.75rem;color:#a8b5c9}
+.reference-company-rows>div>span:first-child{color:#a985ff;font-size:1rem}
+.reference-company-rows strong{font-size:.72rem;font-weight:650;text-align:right;color:#dce3f2;overflow-wrap:anywhere}
+.reference-company-rows a{color:#bd8cff;text-decoration:none}.reference-company-rows a:hover{text-decoration:underline}
+@media(max-width:1050px){.reference-overview-grid{grid-template-columns:1fr}.reference-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:620px){.reference-overview-grid{gap:13px;margin:14px 0 18px}.reference-overview-grid>.dashboard-widget{padding:16px}.reference-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.reference-shortcut{min-height:106px;padding:12px}.reference-company-rows>div{grid-template-columns:20px minmax(75px,.8fr) minmax(0,1.2fr);font-size:.7rem}.reference-company-rows strong{font-size:.67rem}}
