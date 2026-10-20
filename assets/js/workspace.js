@@ -10,6 +10,18 @@ const avatarFile=document.getElementById("avatarFile"),avatarPreview=document.ge
 let profile=null,currentUser=null,selectedAvatar=null,removeAvatarRequested=false,hasWorkspaceAccess=false;
 document.getElementById("year").textContent=new Date().getFullYear();
 const say=(s,k="")=>{msg.textContent=s;msg.className="page-message "+k};
+async function withTimeout(promise,ms,label){
+ let timer;
+ try{
+  return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+" took too long. Check your connection and reload the workspace.")),ms)})]);
+ }finally{clearTimeout(timer)}
+}
+function showStartupRetry(error){
+ say(error.message||"ZakiTech could not finish loading. Check your connection and reload the workspace.","error");
+ if(/too long|timed out/i.test(error.message||"")){
+  const button=document.createElement("button");button.type="button";button.className="outline-button";button.textContent="Reload workspace";button.style.marginLeft="8px";button.addEventListener("click",()=>location.reload());msg.append(" ",button);
+ }
+}
 const fieldSay=(el,s,k="")=>{el.textContent=s;el.className="inline-message "+k};
 function desktopNav(){return window.matchMedia("(min-width: 1100px)").matches}
 function closeNav(){if(desktopNav()){workspaceNav.inert=false;workspaceNav.classList.add("open");menuToggle.setAttribute("aria-expanded","true");menuToggle.setAttribute("aria-label","Navigation stays open on desktop");navScrim.hidden=true;return}workspaceNav.classList.remove("open");workspaceNav.inert=true;menuToggle.setAttribute("aria-expanded","false");menuToggle.setAttribute("aria-label","Open navigation");navScrim.hidden=true}
@@ -20,7 +32,7 @@ function showView(view){document.querySelectorAll(".workspace-view").forEach(pan
 menuToggle.addEventListener("click",()=>workspaceNav.classList.contains("open")?closeNav():openNav());navScrim.addEventListener("click",closeNav);document.querySelectorAll(".nav-button[data-view]").forEach(button=>button.addEventListener("click",()=>{if(button.dataset.view==="staffSection"&&section.hidden)return;showView(button.dataset.view)}));workspaceNav.querySelectorAll("a.nav-button").forEach(link=>link.addEventListener("click",closeNav));document.addEventListener("keydown",e=>{if(e.key==="Escape")closeNav()});
 const roleName=r=>({"owner":"Owner / CEO","vice_admin":"Vice Administrator","web_developer":"Web Developer","application_developer":"Application Developer","engineer":"Engineer","staff":"Staff Member","product_manager":"Product Manager","project_manager":"Project Manager","qa_tester":"QA Tester / Quality Assurance","ui_ux_designer":"UI/UX Designer","devops_engineer":"DevOps / Deployment Engineer","release_manager":"Release Manager","notifications_manager":"Notifications Manager","announcements_manager":"Announcements Manager","support_officer":"Support Officer","operations_officer":"Operations Officer","security_officer":"Security Officer","finance_officer":"Finance Officer"})[r]||r;
 async function adminCall(body){
- const {data,error}=await client.functions.invoke("zakitech-staff-admin",{body});
+ const {data,error}=await withTimeout(client.functions.invoke("zakitech-staff-admin",{body}),8000,"ZakiTech service request");
  if(error){let detail=error.message||"Request failed.";try{if(error.context&&typeof error.context.json==="function"){const b=await error.context.json();detail=b.error||detail}}catch(_){}throw Error(detail)}
  if(data?.error)throw Error(data.error);return data;
 }
@@ -189,11 +201,11 @@ async function start(){
   // Avoid chaining independent network requests: slow directory data must not
   // hold up the staff list or make the workspace appear frozen.
   showView("dashboard");
-  const {data:{session},error:sessionError}=await client.auth.getSession();
+  const {data:{session},error:sessionError}=await withTimeout(client.auth.getSession(),8000,"Secure session check");
   if(sessionError)throw sessionError;
   if(!session){sessionStorage.removeItem("ztOverviewApproved");location.replace("index.html");return}
   if(sessionStorage.getItem("ztOverviewApproved")!=="1"){location.replace("zakitech-overview.html");return}
-  await loadProfile();
+  await withTimeout(loadProfile(),12000,"Workspace profile loading");
   const tasks=[renderDirectory()];
   if(hasWorkspaceAccess){
    if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}
@@ -204,7 +216,7 @@ async function start(){
   await Promise.allSettled(tasks);
  }catch(e){
   console.error("ZakiTech workspace initialization failed:",e);
-  say(e.message||"ZakiTech could not finish loading. Check your connection and tap refresh to try again.","error");
+  showStartupRetry(e);
   if(/not active|expired|sign in again/i.test(e.message||"")){
    try{await client.auth.signOut()}catch(_){}
    location.replace("index.html");
