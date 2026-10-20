@@ -2,7 +2,7 @@
 "use strict";
 const shell=document.querySelector(".app-shell"),welcomeScreen=document.getElementById("welcomeScreen"),signinScreen=document.getElementById("signinScreen"),username=document.getElementById("username"),password=document.getElementById("password"),form=document.getElementById("signinForm"),formMessage=document.getElementById("formMessage"),togglePassword=document.getElementById("togglePassword"),soundToggle=document.getElementById("soundToggle"),soundLabel=document.getElementById("soundLabel"),toast=document.getElementById("toast"),signInButton=document.getElementById("signInButton");
 let soundEnabled=false,audioContext=null,toastTimer=null;
-document.getElementById("year").textContent=String(new Date().getFullYear());
+const yearElement=document.getElementById("year");if(yearElement)yearElement.textContent=String(new Date().getFullYear());
 const client=window.ZakiTechSupabase,reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function showSignin(){shell.classList.add("show-signin");welcomeScreen.setAttribute("aria-hidden","true");welcomeScreen.inert=true;signinScreen.removeAttribute("aria-hidden");signinScreen.inert=false;window.setTimeout(()=>username.focus({preventScroll:true}),250)}
 window.setTimeout(showSignin,reducedMotion?100:1200);
