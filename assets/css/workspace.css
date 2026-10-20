@@ -554,3 +554,45 @@ a{transition:color .16s ease}
 @media(max-width:760px){.workspace-main{width:calc(100% - 28px);margin-top:20px}.dashboard-heading{gap:18px}.dashboard-banner{border-radius:20px}.metric-grid{gap:11px}.analytics-widget{padding:17px}.workspace-nav{box-shadow:18px 0 55px rgba(0,0,0,.4)}}
 @media(max-width:430px){.workspace-main{width:calc(100% - 22px);margin-top:14px}.workspace-topbar{padding-inline:12px}.dashboard-banner{padding:20px 16px}.metric-card{padding:15px}.dashboard-section-title{align-items:flex-start;gap:10px}.period-chip{white-space:normal}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+
+/* ZakiTech executive dashboard refresh — October 2026 */
+:root{--zt-bg:#070b15;--zt-panel:#101622;--zt-panel-2:#0c121e;--zt-line:rgba(155,174,211,.14);--zt-purple:#a34dff;--zt-cyan:#36b9ff;--zt-green:#00d981;--zt-muted:#9aa8bd}
+body{background:radial-gradient(ellipse at 78% -8%,rgba(91,37,173,.16),transparent 38%),linear-gradient(145deg,#070b15,#090e19 55%,#070b14);color:#f4f6ff}
+.workspace-topbar{position:sticky;top:0;z-index:40;height:76px;padding:0 clamp(16px,3vw,42px);background:rgba(7,11,21,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--zt-line)}
+.brand-mark{background:linear-gradient(145deg,#aa4cff,#5422c7);box-shadow:0 0 24px rgba(163,77,255,.24);color:#fff}
+.brand-cyan{color:#b77aff}
+.workspace-nav{background:linear-gradient(180deg,#0b101b,#080d17);border-right:1px solid var(--zt-line);box-shadow:14px 0 40px rgba(0,0,0,.13)}
+.nav-button{border-radius:10px;margin:3px 10px;padding:12px 14px;color:#b6c1d4;transition:background .2s,border-color .2s,transform .2s}
+.nav-button:hover,.nav-button.active{background:linear-gradient(100deg,rgba(132,54,235,.24),rgba(82,41,150,.12));color:#fff;border-color:rgba(163,77,255,.25);transform:translateX(2px)}
+.workspace-main{width:min(1500px,calc(100% - 40px));margin:26px auto 36px}
+.dashboard-heading{align-items:flex-start;gap:24px;margin-bottom:20px}
+.dashboard-heading h1{letter-spacing:-.045em}
+.dashboard-heading h1 .greeting-spark{color:#b77aff}
+.company-motto{color:#a78bfa!important;font-size:.8rem!important;letter-spacing:.025em}
+.dashboard-banner{border-color:rgba(163,77,255,.25);background:radial-gradient(circle at 90% 12%,rgba(163,77,255,.22),transparent 34%),linear-gradient(120deg,#11182a,#101322 65%,#17102a);box-shadow:0 20px 55px rgba(0,0,0,.2)}
+.banner-label,.eyebrow{color:#bb8cff}
+.banner-button,.primary-button{background:linear-gradient(110deg,#a44bff,#6f2be8);color:#fff;box-shadow:0 6px 22px rgba(132,54,235,.2)}
+.banner-link,.widget-link{color:#bd8cff}
+.metric-card,.analytics-widget,.dashboard-widget,.staff-panel{background:linear-gradient(145deg,rgba(17,23,36,.98),rgba(11,16,27,.98));border-color:var(--zt-line);border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.12)}
+.metric-card{transition:transform .2s,border-color .2s,box-shadow .2s}
+.metric-card:hover,.quick-card:hover{transform:translateY(-3px);border-color:rgba(163,77,255,.32);box-shadow:0 16px 34px rgba(0,0,0,.2)}
+.metric-cyan{--metric-color:#37baff}.metric-violet{--metric-color:#b56cff}.metric-green{--metric-color:#18dc91}.metric-orange{--metric-color:#ffbe36}
+.metric-icon{color:var(--metric-color);background:color-mix(in srgb,var(--metric-color) 13%,transparent);border-radius:12px}
+.metric-value{letter-spacing:-.055em}
+.dashboard-section-title{margin:28px 0 14px}
+.dashboard-section-title h2,.widget-heading h2,.analytics-heading h2{letter-spacing:-.025em}
+.period-chip,.analytics-chip{border-color:rgba(163,77,255,.22);background:rgba(163,77,255,.08);color:#c5a0ff}
+.analytics-donut{filter:drop-shadow(0 0 16px rgba(163,77,255,.08))}
+.dashboard-columns{gap:18px}
+.dashboard-widget,.analytics-widget{padding:22px}
+.widget-link{border-color:rgba(163,77,255,.35);border-radius:9px}
+.dashboard-project-list,.dashboard-task-list,.activity-list,.dashboard-team-list,.dashboard-message-list{gap:11px}
+.project-row,.task-row,.activity-row,.team-row,.message-row{border-color:rgba(155,174,211,.11);background:rgba(5,10,19,.35);border-radius:12px}
+.workspace-app-download-cta{border-color:rgba(163,77,255,.32);background:linear-gradient(110deg,rgba(163,77,255,.13),rgba(54,185,255,.07))}
+.outline-button{border-color:rgba(163,77,255,.35)}
+.outline-button:hover{border-color:#a34dff;background:rgba(163,77,255,.1)}
+.pipeline-button{background:linear-gradient(100deg,#8738e8,#5721bb);color:white;border-radius:10px}
+.page-message{padding:0 2px}
+@media(min-width:1100px){.workspace-nav{box-shadow:8px 0 34px rgba(0,0,0,.14)}.metric-grid{gap:16px}.dashboard-analytics-grid{gap:16px}}
+@media(max-width:700px){.workspace-main{width:calc(100% - 24px);margin:18px auto 28px}.workspace-topbar{padding:0 14px}.role-badge{display:none}.dashboard-banner{border-radius:17px}.dashboard-widget,.analytics-widget{padding:17px}}
