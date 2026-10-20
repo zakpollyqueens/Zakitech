@@ -67,7 +67,7 @@ function renderDashboard(){
  const pendingBuilds=state.builds.filter(b=>["submitted","approved"].includes(b.status));
  put("metricProducts",state.products.length);
  put("metricTasks",openTasks.length);
- put("metricStaff",state.staff.length|| (state.profile?1:0));
+ put("metricStaff",Math.max(state.staff.length,state.profile?1:0)+1);
  put("metricBuilds",pendingBuilds.filter(b=>b.status==="submitted").length);
  put("metricProductNote",state.products.filter(p=>p.status==="launched").length+" launched · "+state.products.filter(p=>p.status==="in_development").length+" in development");
  put("metricTaskNote",openTasks.filter(t=>t.status==="in_progress").length+" in progress · "+openTasks.filter(t=>t.status==="submitted").length+" submitted");
