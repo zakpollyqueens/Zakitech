@@ -183,12 +183,33 @@ form.addEventListener("submit",async e=>{
 document.getElementById("refreshStaff").addEventListener("click",loadStaff);
 signout.addEventListener("click",async()=>{signout.disabled=true;sessionStorage.removeItem("ztOverviewApproved");try{await client.auth.signOut()}finally{location.replace("index.html")}});
 async function start(){
- if(!client){say("Secure authentication is not configured.","error");return}
- const {data:{session}}=await client.auth.getSession();if(!session){sessionStorage.removeItem("ztOverviewApproved");location.replace("index.html");return}
- if(sessionStorage.getItem("ztOverviewApproved")!=="1"){location.replace("zakitech-overview.html");return}
- showView("dashboard");
- try{await loadProfile();await renderDirectory();if(hasWorkspaceAccess){if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}await loadStaff()}}
- catch(e){console.error(e);say(e.message||"Could not verify your session. Please sign in again.","error");if(/not active|expired|sign in again/i.test(e.message||"")){await client.auth.signOut();location.replace("index.html")}}
+ if(!client){say("Secure authentication is not configured. Check your connection and reopen ZakiTech.","error");return}
+ try{
+  // Keep the dashboard responsive while the authenticated profile is checked.
+  // Avoid chaining independent network requests: slow directory data must not
+  // hold up the staff list or make the workspace appear frozen.
+  showView("dashboard");
+  const {data:{session},error:sessionError}=await client.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(!session){sessionStorage.removeItem("ztOverviewApproved");location.replace("index.html");return}
+  if(sessionStorage.getItem("ztOverviewApproved")!=="1"){location.replace("zakitech-overview.html");return}
+  await loadProfile();
+  const tasks=[renderDirectory()];
+  if(hasWorkspaceAccess){
+   if(profile.role!=="owner"){const o=document.querySelector('#staffRole option[value="vice_admin"]');if(o)o.remove()}
+   tasks.push(loadStaff());
+  }
+  // Each panel already handles its own errors; settle both without one
+  // failed endpoint blocking the other.
+  await Promise.allSettled(tasks);
+ }catch(e){
+  console.error("ZakiTech workspace initialization failed:",e);
+  say(e.message||"ZakiTech could not finish loading. Check your connection and tap refresh to try again.","error");
+  if(/not active|expired|sign in again/i.test(e.message||"")){
+   try{await client.auth.signOut()}catch(_){}
+   location.replace("index.html");
+  }
+ }
 }
 void start();
 })();
