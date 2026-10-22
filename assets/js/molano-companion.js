@@ -16,25 +16,25 @@ function speak(text){return new Promise(resolve=>{if(!("speechSynthesis"in windo
 function normalizeSpeech(s){return String(s||"").replace(/[.,!?;:]+/g," ").replace(/\s+/g," ").trim()}
 function isEndPhrase(s){return /\b(goodbye molano|bye molano|stop listening|that's all molano|that is all molano|end our conversation)\b/i.test(s)}
 function commandDestination(text){
- const t=String(text||"").toLowerCase().replace(/\\b(milano|molano|hey|please|could you|can you|take me to|go to|open|show me|navigate to|bring me to)\\b/g," ").replace(/[^a-z0-9 ]/g," ").replace(/\\s+/g," ").trim();
+ const t=String(text||"").toLowerCase().replace(/\b(milano|molano|hey|please|could you|can you|take me to|go to|open|show me|navigate to|bring me to)\b/g," ").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
  const routes=[
-  {keys:/\\b(product hub|products hub|product launch station|launch station|company products)\\b/,href:"product-hub.html",label:"Product Hub"},
-  {keys:/\\b(product operations|product station|operations station)\\b/,href:"product-station.html",label:"Product Operations Station"},
-  {keys:/\\b(dashboard|home|workspace overview)\\b/,href:"workspace.html",label:"Dashboard"},
-  {keys:/\\b(profile|my profile|account security)\\b/,href:"profile.html",label:"My profile and security"},
-  {keys:/\\b(staff directory|team members|team directory)\\b/,href:"staff-directory.html",label:"Staff directory"},
-  {keys:/\\b(tasks|assignments|my tasks)\\b/,href:"tasks.html",label:"Tasks and assignments"},
-  {keys:/\\b(staff group chat|group chat|team chat)\\b/,href:"staff-communication.html",label:"Staff group chat"},
-  {keys:/\\b(private chat|direct chat|messages to staff)\\b/,href:"staff-direct-chat.html",label:"Private staff chat"},
-  {keys:/\\b(announcements|company announcements)\\b/,href:"announcements.html",label:"Announcements"},
-  {keys:/\\b(notifications|alerts)\\b/,href:"notifications.html",label:"Notifications"},
-  {keys:/\\b(development|product development|development board)\\b/,href:"development.html",label:"Product development"},
-  {keys:/\\b(releases|release review|publishing)\\b/,href:"release-review.html",label:"Release review and publishing"},
-  {keys:/\\b(product messages|support inbox|inbox)\\b/,href:"messages.html",label:"Product messages"},
-  {keys:/\\b(meetings|calendar)\\b/,href:"meetings.html",label:"Meetings"},
-  {keys:/\\b(company updates|updates)\\b/,href:"company-updates.html",label:"Company updates"},
-  {keys:/\\b(settings|appearance)\\b/,href:"settings.html",label:"Settings"},
-  {keys:/\\b(governance|governance board)\\b/,href:"governance-board.html",label:"Governance board"}
+  {keys:/\b(product hub|products hub|product launch station|launch station|company products)\b/,href:"product-hub.html",label:"Product Hub"},
+  {keys:/\b(product operations|product station|operations station)\b/,href:"product-station.html",label:"Product Operations Station"},
+  {keys:/\b(dashboard|home|workspace overview)\b/,href:"workspace.html",label:"Dashboard"},
+  {keys:/\b(profile|my profile|account security)\b/,href:"profile.html",label:"My profile and security"},
+  {keys:/\b(staff directory|team members|team directory)\b/,href:"staff-directory.html",label:"Staff directory"},
+  {keys:/\b(tasks|assignments|my tasks)\b/,href:"tasks.html",label:"Tasks and assignments"},
+  {keys:/\b(staff group chat|group chat|team chat)\b/,href:"staff-communication.html",label:"Staff group chat"},
+  {keys:/\b(private chat|direct chat|messages to staff)\b/,href:"staff-direct-chat.html",label:"Private staff chat"},
+  {keys:/\b(announcements|company announcements)\b/,href:"announcements.html",label:"Announcements"},
+  {keys:/\b(notifications|alerts)\b/,href:"notifications.html",label:"Notifications"},
+  {keys:/\b(development|product development|development board)\b/,href:"development.html",label:"Product development"},
+  {keys:/\b(releases|release review|publishing)\b/,href:"release-review.html",label:"Release review and publishing"},
+  {keys:/\b(product messages|support inbox|inbox)\b/,href:"messages.html",label:"Product messages"},
+  {keys:/\b(meetings|calendar)\b/,href:"meetings.html",label:"Meetings"},
+  {keys:/\b(company updates|updates)\b/,href:"company-updates.html",label:"Company updates"},
+  {keys:/\b(settings|appearance)\b/,href:"settings.html",label:"Settings"},
+  {keys:/\b(governance|governance board)\b/,href:"governance-board.html",label:"Governance board"}
  ];
  return routes.find(r=>r.keys.test(t))||null;
 }
