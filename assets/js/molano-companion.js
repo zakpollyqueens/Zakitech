@@ -15,6 +15,29 @@ function stopSpeech(){try{window.speechSynthesis?.cancel()}catch(_){}}
 function speak(text){return new Promise(resolve=>{if(!("speechSynthesis"in window)||typeof SpeechSynthesisUtterance==="undefined"){setState("Reply ready to read. Listening will resume shortly.","ready");resolve();return}stopSpeech();const u=new SpeechSynthesisUtterance(String(text));u.lang=(navigator.language&&/^[a-z]{2}/i.test(navigator.language))?navigator.language:"en-US";u.rate=1.02;u.pitch=1.02;const voices=window.speechSynthesis.getVoices?.()||[];u.voice=voices.find(v=>v.lang.toLowerCase()===u.lang.toLowerCase())||voices.find(v=>v.lang.toLowerCase().startsWith(u.lang.slice(0,2).toLowerCase()))||null;u.onend=()=>resolve();u.onerror=()=>resolve();try{window.speechSynthesis.speak(u)}catch(_){resolve()}})}
 function normalizeSpeech(s){return String(s||"").replace(/[.,!?;:]+/g," ").replace(/\s+/g," ").trim()}
 function isEndPhrase(s){return /\b(goodbye molano|bye molano|stop listening|that's all molano|that is all molano|end our conversation)\b/i.test(s)}
+function commandDestination(text){
+ const t=String(text||"").toLowerCase().replace(/\\b(milano|molano|hey|please|could you|can you|take me to|go to|open|show me|navigate to|bring me to)\\b/g," ").replace(/[^a-z0-9 ]/g," ").replace(/\\s+/g," ").trim();
+ const routes=[
+  {keys:/\\b(product hub|products hub|product launch station|launch station|company products)\\b/,href:"product-hub.html",label:"Product Hub"},
+  {keys:/\\b(product operations|product station|operations station)\\b/,href:"product-station.html",label:"Product Operations Station"},
+  {keys:/\\b(dashboard|home|workspace overview)\\b/,href:"workspace.html",label:"Dashboard"},
+  {keys:/\\b(profile|my profile|account security)\\b/,href:"profile.html",label:"My profile and security"},
+  {keys:/\\b(staff directory|team members|team directory)\\b/,href:"staff-directory.html",label:"Staff directory"},
+  {keys:/\\b(tasks|assignments|my tasks)\\b/,href:"tasks.html",label:"Tasks and assignments"},
+  {keys:/\\b(staff group chat|group chat|team chat)\\b/,href:"staff-communication.html",label:"Staff group chat"},
+  {keys:/\\b(private chat|direct chat|messages to staff)\\b/,href:"staff-direct-chat.html",label:"Private staff chat"},
+  {keys:/\\b(announcements|company announcements)\\b/,href:"announcements.html",label:"Announcements"},
+  {keys:/\\b(notifications|alerts)\\b/,href:"notifications.html",label:"Notifications"},
+  {keys:/\\b(development|product development|development board)\\b/,href:"development.html",label:"Product development"},
+  {keys:/\\b(releases|release review|publishing)\\b/,href:"release-review.html",label:"Release review and publishing"},
+  {keys:/\\b(product messages|support inbox|inbox)\\b/,href:"messages.html",label:"Product messages"},
+  {keys:/\\b(meetings|calendar)\\b/,href:"meetings.html",label:"Meetings"},
+  {keys:/\\b(company updates|updates)\\b/,href:"company-updates.html",label:"Company updates"},
+  {keys:/\\b(settings|appearance)\\b/,href:"settings.html",label:"Settings"},
+  {keys:/\\b(governance|governance board)\\b/,href:"governance-board.html",label:"Governance board"}
+ ];
+ return routes.find(r=>r.keys.test(t))||null;
+}
 async function handleUtterance(raw){const heard=normalizeSpeech(raw);if(!heard||replying)return;const now=Date.now();if(heard.toLowerCase()===lastUtterance.toLowerCase()&&now-lastUtteranceAt<2200)return;lastUtterance=heard;lastUtteranceAt=now;
 const wake=/\b(?:hey|hi|hello)\s+molano\b/i;let prompt=heard;
  // Do not silently discard recognized speech while the companion is listening.
@@ -22,6 +45,12 @@ const wake=/\b(?:hey|hi|hello)\s+molano\b/i;let prompt=heard;
  else if(wake.test(prompt))prompt=normalizeSpeech(prompt.replace(wake,""));
  if(isEndPhrase(heard)){conversation=false;history=[];replying=true;if(!native)stopWeb();setState("Back to wake-word listening","speaking");showWords("molano","Of course. I'll be here when you say Hey Molano.");await speak("Of course. I'll be here when you say Hey Molano.");replying=false;setState("Listening for Hey Molano","listening");if(!native&&active)setTimeout(startWeb,550);return}
 if(!prompt){replying=true;if(!native)stopWeb();setState("I'm here for you","speaking");showWords("molano","I'm here, bro. What's on your mind?");await speak("I'm here. What's on your mind?");replying=false;setState("Conversation ready","listening");if(!native&&active)setTimeout(startWeb,550);return}
+const destination=commandDestination(prompt||heard);
+if(destination){
+ replying=true;if(!native)stopWeb();const targetUrl=new URL(destination.href,window.location.href);
+ setState("Opening "+destination.label,"speaking");await speak("Of course. Opening "+destination.label+" now.");
+ window.location.href=targetUrl.href;return;
+}
 showWords("you",prompt);history.push({role:"user",content:prompt});history=history.slice(-10);replying=true;if(!native)stopWeb();setState("Thinking about what you said","thinking");
 try{const fresh=await window.ZakiTechSupabase?.auth?.getSession();session=fresh?.data?.session||session;if(!session?.access_token)throw new Error("Your ZakiTech session has expired. Sign in again to talk with Molano.");
 const response=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},body:JSON.stringify({messages:history})});
