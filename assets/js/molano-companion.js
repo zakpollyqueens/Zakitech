@@ -17,9 +17,10 @@ function normalizeSpeech(s){return String(s||"").replace(/[.,!?;:]+/g," ").repla
 function isEndPhrase(s){return /\b(goodbye molano|bye molano|stop listening|that's all molano|that is all molano|end our conversation)\b/i.test(s)}
 async function handleUtterance(raw){const heard=normalizeSpeech(raw);if(!heard||replying)return;const now=Date.now();if(heard.toLowerCase()===lastUtterance.toLowerCase()&&now-lastUtteranceAt<2200)return;lastUtterance=heard;lastUtteranceAt=now;
 const wake=/\b(?:hey|hi|hello)\s+molano\b/i;let prompt=heard;
-if(!conversation){const m=wake.exec(heard);if(!m)return;prompt=normalizeSpeech(heard.slice(m.index+m[0].length));conversation=true}
-else if(wake.test(prompt))prompt=normalizeSpeech(prompt.replace(wake,""));
-if(isEndPhrase(heard)){conversation=false;history=[];replying=true;if(!native)stopWeb();setState("Back to wake-word listening","speaking");showWords("molano","Of course. I'll be here when you say Hey Molano.");await speak("Of course. I'll be here when you say Hey Molano.");replying=false;setState("Listening for Hey Molano","listening");if(!native&&active)setTimeout(startWeb,550);return}
+ // Do not silently discard recognized speech while the companion is listening.
+ if(!conversation){const m=wake.exec(heard);if(m)prompt=normalizeSpeech(heard.slice(m.index+m[0].length));conversation=true}
+ else if(wake.test(prompt))prompt=normalizeSpeech(prompt.replace(wake,""));
+ if(isEndPhrase(heard)){conversation=false;history=[];replying=true;if(!native)stopWeb();setState("Back to wake-word listening","speaking");showWords("molano","Of course. I'll be here when you say Hey Molano.");await speak("Of course. I'll be here when you say Hey Molano.");replying=false;setState("Listening for Hey Molano","listening");if(!native&&active)setTimeout(startWeb,550);return}
 if(!prompt){replying=true;if(!native)stopWeb();setState("I'm here for you","speaking");showWords("molano","I'm here, bro. What's on your mind?");await speak("I'm here. What's on your mind?");replying=false;setState("Conversation ready","listening");if(!native&&active)setTimeout(startWeb,550);return}
 showWords("you",prompt);history.push({role:"user",content:prompt});history=history.slice(-10);replying=true;if(!native)stopWeb();setState("Thinking about what you said","thinking");
 try{const fresh=await window.ZakiTechSupabase?.auth?.getSession();session=fresh?.data?.session||session;if(!session?.access_token)throw new Error("Your ZakiTech session has expired. Sign in again to talk with Molano.");
