@@ -1,0 +1,44 @@
+(()=>{"use strict";
+if(window.__molanoCompanionLoaded)return;window.__molanoCompanionLoaded=true;
+const API="https://molanoai.zakpollyqueens.workers.dev/api/chat";
+const $=id=>document.getElementById(id);
+const styleLink=document.querySelector('link[data-molano-companion-css]');
+const host=document.createElement("aside");host.id="molanoCompanion";host.className="molano-companion";
+host.innerHTML='<div class="mc-orb" aria-hidden="true"><span class="mc-orb-core"></span><span class="mc-ring mc-ring-a"></span><span class="mc-ring mc-ring-b"></span></div><div class="mc-copy"><strong id="mcTitle">Molano is getting ready</strong><span id="mcStatus" role="status" aria-live="polite">Preparing your private voice companion…</span><p id="mcTranscript" hidden></p></div>';
+document.body.append(host);
+const title=$("mcTitle"),status=$("mcStatus"),transcript=$("mcTranscript");
+const native=!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==="function"&&window.Capacitor.isNativePlatform());
+let session=null,active=false,conversation=false,replying=false,recognition=null,nativeSpeech=null,nativeLoop=false,history=[],lastUtterance="",lastUtteranceAt=0,initDone=false;
+function setState(t,mode){status.textContent=t;host.dataset.state=mode||"ready";title.textContent=mode==="speaking"?"Molano is replying":mode==="thinking"?"Molano is thinking":mode==="error"?"Voice access needs attention":mode==="listening"?"I'm listening for you":"Molano is here";}
+function showWords(who,text){transcript.hidden=false;transcript.textContent=(who==="you"?"You: ":"Molano: ")+String(text).slice(0,360)}
+function stopSpeech(){try{window.speechSynthesis?.cancel()}catch(_){}}
+function speak(text){return new Promise(resolve=>{if(!("speechSynthesis"in window)||typeof SpeechSynthesisUtterance==="undefined"){setState("Reply ready to read. Listening will resume shortly.","ready");resolve();return}stopSpeech();const u=new SpeechSynthesisUtterance(String(text));u.lang=(navigator.language&&/^[a-z]{2}/i.test(navigator.language))?navigator.language:"en-US";u.rate=1.02;u.pitch=1.02;const voices=window.speechSynthesis.getVoices?.()||[];u.voice=voices.find(v=>v.lang.toLowerCase()===u.lang.toLowerCase())||voices.find(v=>v.lang.toLowerCase().startsWith(u.lang.slice(0,2).toLowerCase()))||null;u.onend=()=>resolve();u.onerror=()=>resolve();try{window.speechSynthesis.speak(u)}catch(_){resolve()}})}
+function normalizeSpeech(s){return String(s||"").replace(/[.,!?;:]+/g," ").replace(/\s+/g," ").trim()}
+function isEndPhrase(s){return /\b(goodbye molano|bye molano|stop listening|that's all molano|that is all molano|end our conversation)\b/i.test(s)}
+async function handleUtterance(raw){const heard=normalizeSpeech(raw);if(!heard||replying)return;const now=Date.now();if(heard.toLowerCase()===lastUtterance.toLowerCase()&&now-lastUtteranceAt<2200)return;lastUtterance=heard;lastUtteranceAt=now;
+const wake=/\b(?:hey|hi|hello)\s+molano\b/i;let prompt=heard;
+if(!conversation){const m=wake.exec(heard);if(!m)return;prompt=normalizeSpeech(heard.slice(m.index+m[0].length));conversation=true}
+else if(wake.test(prompt))prompt=normalizeSpeech(prompt.replace(wake,""));
+if(isEndPhrase(heard)){conversation=false;history=[];replying=true;setState("Back to wake-word listening","speaking");showWords("molano","Of course. I'll be here when you say Hey Molano.");await speak("Of course. I'll be here when you say Hey Molano.");replying=false;setState("Listening for Hey Molano","listening");return}
+if(!prompt){replying=true;setState("I'm here for you","speaking");showWords("molano","I'm here, bro. What's on your mind?");await speak("I'm here. What's on your mind?");replying=false;setState("Conversation ready","listening");return}
+showWords("you",prompt);history.push({role:"user",content:prompt});history=history.slice(-10);replying=true;setState("Thinking about what you said","thinking");
+try{const fresh=await window.ZakiTechSupabase?.auth?.getSession();session=fresh?.data?.session||session;if(!session?.access_token)throw new Error("Your ZakiTech session has expired. Sign in again to talk with Molano.");
+const response=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token},body:JSON.stringify({messages:history})});
+const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"Molano is temporarily unavailable.");
+const answer=String(data.reply||"I heard you, but I couldn't prepare a reply. Please say that again.").trim();history.push({role:"assistant",content:answer});history=history.slice(-10);showWords("molano",answer);setState("Speaking back to you","speaking");await speak(answer);
+}catch(e){const msg=e.message||"I couldn't reach Molano AI. Check your connection and try again.";showWords("molano",msg);setState(msg,"error");await speak(msg)}
+finally{replying=false;if(active&&document.visibilityState==="visible")setState("Listening for Hey Molano","listening")}
+}
+function stopWeb(){if(recognition){try{recognition.onend=null;recognition.stop()}catch(_){}recognition=null}}
+function startWeb(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){setState("This browser has no speech recognition. Use the installed ZakiTech app or Chrome.","error");return}if(!active||document.visibilityState!=="visible"||replying||recognition)return;try{recognition=new SR();recognition.lang=navigator.language||"en-US";recognition.continuous=true;recognition.interimResults=true;recognition.maxAlternatives=1;recognition.onstart=()=>setState("Listening for Hey Molano","listening");recognition.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){const r=e.results[i];if(r.isFinal&&r[0]?.transcript)void handleUtterance(r[0].transcript)}};recognition.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){active=false;setState("Allow microphone access in your browser settings, then reopen ZakiTech.","error")}else if(e.error!=="no-speech"&&e.error!=="aborted")setState("Voice connection interrupted; reconnecting…","ready")};recognition.onend=()=>{recognition=null;if(active&&!replying&&document.visibilityState==="visible")setTimeout(startWeb,550)};recognition.start()}catch(e){recognition=null;setState("Waiting for microphone permission. If prompted, allow it.","error")}}
+async function startNative(){try{const mod=await import("https://esm.sh/@capacitor-community/speech-recognition@7.0.1?bundle");nativeSpeech=mod.SpeechRecognition;const available=await nativeSpeech.available();if(!available.available)throw new Error("Speech recognition is not available on this device.");const permission=await nativeSpeech.requestPermissions();if(permission?.speechRecognition==="denied")throw new Error("Allow microphone and speech recognition permission in Android settings.");active=true;setState("Listening for Hey Molano","listening");nativeLoop=true;while(nativeLoop&&active&&document.visibilityState==="visible"){if(replying){await new Promise(r=>setTimeout(r,300));continue}try{const result=await nativeSpeech.start({language:/^en-GB/i.test(navigator.language||"")?"en-GB":"en-US",maxResults:3,partialResults:false,popup:false});const phrase=result?.matches?.[0];if(phrase)await handleUtterance(phrase);else await new Promise(r=>setTimeout(r,200))}catch(e){if(!nativeLoop||!active)break;await new Promise(r=>setTimeout(r,900));if(!replying)setState("Reconnecting voice recognition…","ready")}}}catch(e){active=false;setState(e.message||"Could not start Android voice recognition.","error")}}
+async function boot(){if(initDone)return;initDone=true;try{const client=window.ZakiTechSupabase;if(!client){setState("Secure account service is still loading…","ready");setTimeout(()=>{initDone=false;boot()},1200);return}const {data,error}=await client.auth.getSession();if(error||!data?.session){setState("Sign in to ZakiTech to talk with Molano.","error");return}session=data.session;setState("Requesting microphone permission…","ready");
+if(native){await startNative();return}
+if(!navigator.mediaDevices?.getUserMedia){setState("Microphone access is unavailable in this browser.","error");return}
+let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true});stream.getTracks().forEach(t=>t.stop())}catch(e){setState("Allow microphone access in browser settings, then reopen ZakiTech.","error");return}
+active=true;startWeb();
+}catch(e){setState(e.message||"Molano could not start voice access.","error")}}
+document.addEventListener("visibilitychange",()=>{if(document.hidden){if(native){nativeLoop=false;active=false;nativeSpeech?.stop?.().catch?.(()=>{})}else{active=false;stopWeb()}stopSpeech()}else if(session){active=true;if(native){if(!nativeLoop)void startNative()}else startWeb()}});
+window.addEventListener("pagehide",()=>{active=false;nativeLoop=false;stopWeb();nativeSpeech?.stop?.().catch?.(()=>{});stopSpeech()});
+boot();
+})();
