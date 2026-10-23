@@ -7,7 +7,7 @@ const host=document.createElement("aside");host.id="molanoCompanion";host.classN
 host.innerHTML='<div class="mc-orb" aria-hidden="true"><span class="mc-orb-core"></span><span class="mc-ring mc-ring-a"></span><span class="mc-ring mc-ring-b"></span></div><div class="mc-copy"><strong id="mcTitle">Molano is getting ready</strong><span id="mcStatus" role="status" aria-live="polite">Preparing your private voice companion…</span><p id="mcTranscript" hidden></p><div class="mc-controls"><button id="mcStartVoice" type="button">Start voice</button><button id="mcPauseVoice" type="button">Pause</button></div></div>';
 document.body.append(host);
 const title=$("mcTitle"),status=$("mcStatus"),transcript=$("mcTranscript"),startButton=$("mcStartVoice"),pauseButton=$("mcPauseVoice");
-const native=!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==="function"&&window.Capacitor.isNativePlatform());
+const native=!!(window.ZakiTechNativeTTS&&typeof window.ZakiTechNativeTTS.speak==="function")||!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==="function"&&window.Capacitor.isNativePlatform());
 let session=null,active=false,paused=false,conversation=false,replying=false,recognition=null,nativeSpeech=null,nativeLoop=false,history=[],lastUtterance="",lastUtteranceAt=0,initDone=false,speechOutputFailed=false;
 function setState(t,mode){status.textContent=t;host.dataset.state=mode||"ready";title.textContent=mode==="speaking"?"Molano is replying":mode==="thinking"?"Molano is thinking":mode==="error"?"Voice access needs attention":mode==="listening"?"I'm listening for you":"Molano is here";}
 function showWords(who,text){transcript.hidden=false;transcript.textContent=(who==="you"?"You: ":"Molano: ")+String(text).slice(0,360)}
