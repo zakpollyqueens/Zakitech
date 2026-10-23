@@ -1,10 +1,12 @@
 {
-  "name": "zakitech-android",
+  "name": "zakitech",
   "version": "1.0.0",
   "private": true,
-  "description": "Android packaging build for the ZakiTech web application",
+  "description": "ZakiTech company workspace with Android and Windows desktop releases",
   "scripts": {
-    "build:android": "npx cap sync android"
+    "build:android": "npx cap sync android",
+    "start:desktop": "electron .",
+    "build:windows": "electron-builder --win nsis"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -17,6 +19,52 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.4.3",
     "sharp": "^0.34.3",
-    "esbuild": "^0.25.10"
+    "esbuild": "^0.25.10",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12"
+  },
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "com.zakmolanitech.zakitech",
+    "productName": "ZakiTech",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "*.html",
+      "manifest.json",
+      "assets/**/*",
+      "electron/**/*",
+      "package.json",
+      "!assets/icon-only.png",
+      "!assets/splash.png",
+      "!assets/**/*.map"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "ZakiTech-Setup-${version}-Windows.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ZakiTech"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "zakpollyqueens",
+        "repo": "Zakitech"
+      }
+    ]
   }
 }
