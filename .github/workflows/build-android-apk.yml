@@ -55,6 +55,8 @@ jobs:
           mkdir -p www
           cp ./*.html ./manifest.json www/
           cp -R assets www/assets
+          # Bundle native Android text-to-speech into the APK; no browser playback settings are required in the installed app.
+          npx esbuild assets/js/molano-native-tts-entry.js --bundle --format=iife --target=es2020 --outfile=www/assets/js/molano-native-tts.js
           mkdir -p assets
           mkdir -p www/assets/js www/assets/css
           cp assets/js/app-updater.js www/assets/js/app-updater.js
@@ -63,6 +65,7 @@ jobs:
           sed -i "s/__ZAKITECH_BUILD_VERSION__/${BUILD_VERSION}/g" www/assets/js/app-updater.js
           for page in www/*.html; do
             sed -i 's#</head>#  <link rel="stylesheet" href="assets/css/app-updater.css">\n</head>#i' "$page"
+            sed -i 's#<script src="assets/js/molano-companion.js#<script src="assets/js/molano-native-tts.js" defer></script>\n<script src="assets/js/molano-companion.js#' "$page"
             sed -i 's#</body>#  <script src="assets/js/app-updater.js" defer></script>\n</body>#i' "$page"
           done
           # Bundle Supabase locally for Android WebView reliability; do not depend on a CDN at launch.
