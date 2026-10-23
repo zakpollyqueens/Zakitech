@@ -1,0 +1,56 @@
+name: Build ZakiTech Windows Desktop Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.html'
+      - 'assets/**'
+      - 'electron/**'
+      - 'manifest.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/build-windows-desktop.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows installer with native Molano voice
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Build Windows installer
+        run: npm run build:windows
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZakiTech-Windows-Installer
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish Windows installer to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-v${{ github.run_number }}
+          name: ZakiTech Windows Desktop v${{ github.run_number }}
+          body: |
+            ZakiTech Windows desktop installer built from main.
+
+            Molano spoken replies use Windows' native System.Speech voice engine through a restricted desktop bridge, not browser playback settings.
+          files: release/*.exe
+          draft: false
+          prerelease: false
+          make_latest: false
