@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build Windows installer
-        run: npm run build:windows
+        run: npm run build:windows -- --publish never
       - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
         with:
