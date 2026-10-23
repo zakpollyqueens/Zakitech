@@ -49,6 +49,16 @@ function commandDestination(text){
  return routes.find(r=>r.keys.test(t))||null;
 }
 async function handleUtterance(raw){const heard=normalizeSpeech(raw);if(!heard||replying)return;const now=Date.now();if(heard.toLowerCase()===lastUtterance.toLowerCase()&&now-lastUtteranceAt<2200)return;lastUtterance=heard;lastUtteranceAt=now;
+if(pendingDestination){
+ const answer=heard.toLowerCase(),destination=pendingDestination;
+ if(/^(yes|yeah|yep|confirm|confirmed|proceed|go ahead|do it|correct|that is right|thats right)\b/.test(answer)){
+  pendingDestination=null;replying=true;if(!native)stopWeb();setState("Confirmed. Opening "+destination.label,"speaking");showWords("molano","Confirmed. Opening "+destination.label+".");await speak("Confirmed. Opening "+destination.label+".");window.location.href=new URL(destination.href,window.location.href).href;return;
+ }
+ if(/^(no|nope|cancel|stop|dont|do not|not now)\b/.test(answer)){
+  pendingDestination=null;replying=true;if(!native)stopWeb();showWords("molano","Cancelled. I did not open anything.");setState("Command cancelled","speaking");await speak("Cancelled. I did not open anything.");replying=false;setState("Listening for Hey Molano","listening");if(active&&!native)setTimeout(startWeb,550);return;
+ }
+ replying=true;if(!native)stopWeb();const prompt="Please say yes to open "+destination.label+", or no to cancel.";showWords("molano",prompt);setState("Waiting for confirmation","speaking");await speak(prompt);replying=false;setState("Listening for yes or no","listening");if(active&&!native)setTimeout(startWeb,550);return;
+}
 const wake=/\b(?:hey|hi|hello)\s+molano\b/i;let prompt=heard;
  // Do not silently discard recognized speech while the companion is listening.
  if(!conversation){const m=wake.exec(heard);if(m)prompt=normalizeSpeech(heard.slice(m.index+m[0].length));conversation=true}
@@ -57,9 +67,10 @@ const wake=/\b(?:hey|hi|hello)\s+molano\b/i;let prompt=heard;
 if(!prompt){replying=true;if(!native)stopWeb();setState("I'm here for you","speaking");showWords("molano","I'm here, bro. What's on your mind?");await speak("I'm here. What's on your mind?");replying=false;setState("Conversation ready","listening");if(!native&&active)setTimeout(startWeb,550);return}
 const destination=commandDestination(prompt||heard);
 if(destination){
- replying=true;if(!native)stopWeb();const targetUrl=new URL(destination.href,window.location.href);
- setState("Opening "+destination.label,"speaking");await speak("Of course. Opening "+destination.label+" now.");
- window.location.href=targetUrl.href;return;
+ pendingDestination=destination;replying=true;if(!native)stopWeb();
+ const prompt="I heard you ask to open "+destination.label+". Say yes to continue, or no to cancel.";
+ setState("Waiting for your confirmation","speaking");showWords("molano",prompt);await speak(prompt);
+ replying=false;setState("Listening for yes or no","listening");if(active&&!native)setTimeout(startWeb,550);return;
 }
 showWords("you",prompt);history.push({role:"user",content:prompt});history=history.slice(-10);replying=true;if(!native)stopWeb();setState("Thinking about what you said","thinking");
 try{const fresh=await window.ZakiTechSupabase?.auth?.getSession();session=fresh?.data?.session||session;if(!session?.access_token)throw new Error("Your ZakiTech session has expired. Sign in again to talk with Molano.");
