@@ -50,10 +50,10 @@
     if(busy||!text.trim())return;
     busy=true;send.disabled=true;setStatus("Molano is thinking…");history.push({role:"user",content:text.trim()});addMessage(text.trim(),"user");
     try{
-      const res=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({product:PRODUCT,messages:history.slice(-10)})});
+      const res=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({product:PRODUCT,messages:[{role:"system",content:"Reply only to the user's exact request in 1-3 short sentences. Do not give unsolicited greetings, tours, unrelated tips, or extra details. If unclear, ask one brief clarifying question."},...history.slice(-10)]})});
       const data=await res.json();
       if(!res.ok)throw new Error(data.error||"Molano is temporarily unavailable.");
-      const answer=String(data.response||data.reply||data.message||"I couldn't prepare a response. Please try again.");
+      const answer=String(data.response||data.reply||data.message||"I couldn't prepare a response. Please try again.").trim().slice(0,500);
       history.push({role:"assistant",content:answer});addMessage(answer,"bot");setStatus("Reply ready.");say(answer);
     }catch(e){const msg=e.message||"Connection failed.";addMessage(msg,"bot");setStatus("Could not connect.");say(msg);}
     finally{busy=false;send.disabled=false;}
@@ -83,6 +83,5 @@
     recognition.onerror=()=>{mic.textContent="🎙";recognition=null;setStatus("Microphone unavailable. Check browser permission and try again.");};
     try{recognition.start();}catch(_){mic.textContent="🎙";recognition=null;setStatus("Couldn't start the microphone.");}
   });
-  window.setTimeout(()=>{if(!sessionStorage.getItem("molanoVoiceWelcomed")){sessionStorage.setItem("molanoVoiceWelcomed","1");say("Hello, welcome. I’m Molano AI, your assistant for "+PRODUCT+". Open me any time and I’ll help you step by step.");}},1200);
   window.addEventListener("beforeunload",()=>{try{recognition&&recognition.stop();confirmRecognition&&confirmRecognition.stop();}catch(_){}});
 })();
