@@ -147,3 +147,25 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid rgba(
 .submit-button:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(35,193,222,.23)}
 @keyframes ztWelcomeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.welcome-content{animation:none}.submit-button:hover{transform:none}}
+
+
+/* ZakiTech professional cinematic theme — balanced violet, emerald, gold and coral accents. */
+:root{color-scheme:dark;--navy:#090d1d;--navy-soft:#111a2e;--cyan:#b8a7ff;--cyan-strong:#8d78f6;--text:#f7f7ff;--muted:#b1b8ce;--line:rgba(194,181,255,.18);--panel:rgba(17,25,45,.9)}
+.app-shell{background:radial-gradient(ellipse at 16% 18%,rgba(125,91,214,.24),transparent 38%),radial-gradient(ellipse at 84% 78%,rgba(34,160,125,.14),transparent 34%),linear-gradient(135deg,#080d1b,#10162b 58%,#0b1723)}
+.app-shell:before{background-image:linear-gradient(rgba(192,180,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(192,180,255,.055) 1px,transparent 1px)}
+.ambient-one{background:#9877ff;opacity:.17}.ambient-two{background:#32c89a;opacity:.13}
+.brand-mark{border-color:rgba(184,167,255,.45);background:linear-gradient(145deg,rgba(167,139,250,.22),rgba(20,33,56,.85));box-shadow:0 0 26px rgba(167,139,250,.16)}
+.brand-word span,.eyebrow,.welcome-content h1 span,.spark{color:#c4b5fd}
+.topbar-note{color:#c5c9dc}.status-dot{background:#6ee7b7;box-shadow:0 0 12px rgba(110,231,183,.5)}
+.welcome-orbit .orbit{border-color:rgba(196,181,253,.28)}.welcome-progress{background:rgba(196,181,253,.16)}.welcome-progress span{background:linear-gradient(90deg,#a78bfa,#6ee7b7);box-shadow:0 0 14px rgba(167,139,250,.55)}
+.signin-intro h2 span{color:#c4b5fd}.intro-badge{border-color:rgba(196,181,253,.24);background:rgba(167,139,250,.09);color:#e4ddff}
+.mini-product-card{border-color:rgba(196,181,253,.2);background:linear-gradient(145deg,rgba(30,34,62,.82),rgba(10,24,39,.86));box-shadow:0 20px 55px rgba(0,0,0,.2)}
+.product-icon{background:linear-gradient(135deg,#c4b5fd,#8b78f6);color:#17142d}
+.signin-card{border:1px solid rgba(196,181,253,.22);background:linear-gradient(150deg,rgba(24,30,53,.96),rgba(11,20,37,.97));box-shadow:0 30px 90px rgba(0,0,0,.34),0 0 45px rgba(139,120,246,.08)}
+.signin-card .eyebrow{color:#c4b5fd}.signin-card input{border-color:rgba(196,181,253,.2);background:rgba(6,13,27,.8)}
+.signin-card input:focus{border-color:#a78bfa;box-shadow:0 0 0 4px rgba(167,139,250,.12)}
+.button-primary,.primary-button{background:linear-gradient(110deg,#a78bfa,#8067e8 62%,#6d83dc);color:#fff;box-shadow:0 10px 28px rgba(128,103,232,.22)}
+.button-primary:hover,.primary-button:hover{filter:brightness(1.1);box-shadow:0 14px 32px rgba(128,103,232,.3)}
+.button-secondary,.outline-button{border-color:rgba(196,181,253,.23);background:rgba(255,255,255,.035);color:#e8e7f7}
+a:focus-visible,button:focus-visible,input:focus-visible{outline-color:#c4b5fd}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
