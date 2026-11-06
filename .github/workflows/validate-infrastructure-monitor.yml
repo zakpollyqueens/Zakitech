@@ -8,12 +8,17 @@ on:
       - "assets/css/infrastructure-monitor.css"
       - ".github/workflows/validate-infrastructure-monitor.yml"
   workflow_dispatch:
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   validate:
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -35,3 +40,26 @@ jobs:
           grep -q 'zt_service_monitors' assets/js/infrastructure-monitor.js
           grep -q 'zt_service_health_checks' assets/js/infrastructure-monitor.js
           echo "Infrastructure monitor assets and data bindings validated."
+
+  verify-live-page:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify the published infrastructure monitor page
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://zakpollyqueens.github.io/Zakitech/infrastructure-monitor.html"
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+          for attempt in $(seq 1 12); do
+            code="$(curl --silent --show-error --location --max-time 30 -o "$tmp" -w '%{http_code}' "$url?deploy_check=$attempt" || true)"
+            if [ "$code" = "200" ] && grep -q "Infrastructure Monitor" "$tmp"; then
+              echo "Infrastructure Monitor is live: HTTP 200"
+              exit 0
+            fi
+            echo "Waiting for Pages deployment propagation (attempt $attempt/12): HTTP $code"
+            sleep 5
+          done
+          echo "Infrastructure Monitor was not published correctly."
+          exit 1
