@@ -1,0 +1,53 @@
+/* ZAKITECH PREMIUM WORKSPACE — shared visual system (Product Hub intentionally excluded) */
+:root{--zak-ink:#061426;--zak-panel:#0b2038;--zak-panel-2:#102b47;--zak-cyan:#65e5f5;--zak-cyan-2:#27c2df;--zak-white:#f4fbff;--zak-muted:#9db6ca;--zak-line:rgba(135,205,231,.17);--zak-glow:rgba(61,211,237,.18);--zak-radius:22px;--zak-shadow:0 22px 60px rgba(0,0,0,.24)}
+html{scroll-behavior:smooth}
+body:not([data-page="products"]){background-color:var(--zak-ink)}
+body:not([data-page="products"]) .workspace-topbar{position:sticky;top:0;z-index:80;background:rgba(4,16,31,.82);border-bottom:1px solid rgba(110,221,244,.16);backdrop-filter:blur(22px) saturate(145%);box-shadow:0 10px 35px rgba(0,0,0,.14)}
+body:not([data-page="products"]) .workspace-topbar:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(101,229,245,.48),transparent);pointer-events:none}
+body:not([data-page="products"]) .brand-mark{position:relative;overflow:hidden;box-shadow:0 0 0 4px rgba(101,229,245,.055),0 8px 22px rgba(22,190,220,.16);transition:transform .25s,box-shadow .25s}
+body:not([data-page="products"]) .brand:hover .brand-mark{transform:rotate(-7deg) scale(1.06);box-shadow:0 0 0 6px rgba(101,229,245,.08),0 10px 28px rgba(22,190,220,.25)}
+body:not([data-page="products"]) .workspace-nav{background:linear-gradient(180deg,rgba(8,27,48,.98),rgba(4,17,32,.99));border-right:1px solid rgba(112,207,234,.15);box-shadow:18px 0 55px rgba(0,0,0,.22);backdrop-filter:blur(20px)}
+body:not([data-page="products"]) .nav-caption{color:#6f9db7;letter-spacing:.18em}
+body:not([data-page="products"]) .nav-button{position:relative;margin:4px 10px;padding:12px 13px;border:1px solid transparent;border-radius:13px;color:#b6cbdc;transition:background .22s,border-color .22s,color .22s,transform .22s,box-shadow .22s}
+body:not([data-page="products"]) .nav-button>span{display:inline-grid;place-items:center;width:25px;height:25px;margin-right:7px;border-radius:8px;background:rgba(117,199,225,.075);color:#8eddf0;transition:background .22s,transform .22s}
+body:not([data-page="products"]) .nav-button:hover{transform:translateX(3px);background:rgba(80,193,222,.08);border-color:rgba(101,229,245,.13);color:#f2fcff}
+body:not([data-page="products"]) .nav-button:hover>span{transform:scale(1.08);background:rgba(101,229,245,.15)}
+body:not([data-page="products"]) .nav-button.active{background:linear-gradient(105deg,rgba(55,190,219,.19),rgba(77,130,188,.09));border-color:rgba(101,229,245,.24);color:#f4fdff;box-shadow:inset 3px 0 #65e5f5,0 8px 22px rgba(0,0,0,.12)}
+body:not([data-page="products"]) .nav-button.active>span{background:linear-gradient(140deg,#8af0fa,#35bcd9);color:#05213a}
+body:not([data-page="products"]) .nav-bottom{border-top:1px solid rgba(129,205,232,.13);color:#8ceafa;letter-spacing:.16em}
+body:not([data-page="products"]) .workspace-main,body:not([data-page="products"]) .dedicated-main{animation:zakPageEnter .65s cubic-bezier(.2,.75,.25,1) both}
+body:not([data-page="products"]) .welcome-panel,body:not([data-page="products"]) .dedicated-hero,body:not([data-page="products"]) .zt-intro{position:relative;isolation:isolate;overflow:hidden;border:1px solid rgba(101,229,245,.22);border-radius:28px;background:radial-gradient(ellipse at 82% 8%,rgba(37,194,223,.2),transparent 34%),radial-gradient(ellipse at 8% 100%,rgba(87,107,255,.12),transparent 42%),linear-gradient(120deg,#0b2743,#0a1d34 72%);box-shadow:var(--zak-shadow)}
+body:not([data-page="products"]) .welcome-panel:before,body:not([data-page="products"]) .dedicated-hero:before,body:not([data-page="products"]) .zt-intro:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(rgba(129,219,239,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(129,219,239,.06) 1px,transparent 1px);background-size:36px 36px;mask-image:linear-gradient(115deg,#000,transparent 82%)}
+body:not([data-page="products"]) .welcome-panel:after,body:not([data-page="products"]) .dedicated-hero:after{content:"Z";position:absolute;z-index:-1;right:6%;top:50%;transform:translateY(-50%) rotate(-10deg);font:900 clamp(130px,22vw,280px)/1 Manrope,sans-serif;letter-spacing:-.12em;color:rgba(111,231,248,.045);text-shadow:0 0 75px rgba(45,200,232,.12);pointer-events:none}
+body:not([data-page="products"]) .welcome-panel h1,body:not([data-page="products"]) .dedicated-hero h1,body:not([data-page="products"]) .zt-intro h1{letter-spacing:-.055em}
+body:not([data-page="products"]) .welcome-panel .eyebrow,body:not([data-page="products"]) .dedicated-hero .eyebrow,body:not([data-page="products"]) .zt-kicker{color:var(--zak-cyan);letter-spacing:.18em}
+body:not([data-page="products"]) .dedicated-hero p:not(.eyebrow){color:#b5cddd}
+body:not([data-page="products"]) .page-card,body:not([data-page="products"]) .stat-card,body:not([data-page="products"]) .module-card,body:not([data-page="products"]) .panel,body:not([data-page="products"]) .zt-feature,body:not([data-page="products"]) .zt-story-card{position:relative;overflow:hidden;border:1px solid rgba(133,202,231,.16);border-radius:20px;background:linear-gradient(148deg,rgba(16,43,70,.91),rgba(7,22,39,.96));box-shadow:0 14px 38px rgba(0,0,0,.17);transition:transform .25s,border-color .25s,box-shadow .25s}
+body:not([data-page="products"]) .page-card:hover,body:not([data-page="products"]) .stat-card:hover,body:not([data-page="products"]) .module-card:hover,body:not([data-page="products"]) .zt-feature:hover,body:not([data-page="products"]) .zt-story-card:hover{transform:translateY(-4px);border-color:rgba(101,229,245,.34);box-shadow:0 22px 48px rgba(0,0,0,.23),0 0 28px rgba(47,195,224,.055)}
+body:not([data-page="products"]) .page-card:before,body:not([data-page="products"]) .stat-card:before,body:not([data-page="products"]) .module-card:before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,rgba(101,229,245,.75),rgba(101,229,245,.08),transparent)}
+body:not([data-page="products"]) .page-card-head h2,body:not([data-page="products"]) .page-card h2{letter-spacing:-.025em}
+body:not([data-page="products"]) .page-grid{gap:16px}
+body:not([data-page="products"]) .page-row{border-color:rgba(135,205,231,.13);border-radius:15px;background:rgba(5,20,37,.34);transition:transform .2s,border-color .2s,background .2s}
+body:not([data-page="products"]) .page-row:hover{transform:translateY(-2px);border-color:rgba(101,229,245,.27);background:rgba(23,67,94,.34)}
+body:not([data-page="products"]) .page-button,body:not([data-page="products"]) .page-link-button,body:not([data-page="products"]) .primary-button,body:not([data-page="products"]) .outline-button,body:not([data-page="products"]) .zt-ghost,body:not([data-page="products"]) .zt-app-download-cta{border-radius:12px;transition:transform .2s,filter .2s,box-shadow .2s,border-color .2s}
+body:not([data-page="products"]) .page-button:hover,body:not([data-page="products"]) .page-link-button:hover,body:not([data-page="products"]) .primary-button:hover,body:not([data-page="products"]) .outline-button:hover,body:not([data-page="products"]) .zt-ghost:hover,body:not([data-page="products"]) .zt-app-download-cta:hover{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 10px 25px rgba(0,0,0,.18)}
+body:not([data-page="products"]) input:not([type=checkbox]):not([type=radio]),body:not([data-page="products"]) select,body:not([data-page="products"]) textarea{border-color:rgba(139,199,225,.2);border-radius:11px;background:rgba(4,17,32,.62);transition:border-color .2s,box-shadow .2s}
+body:not([data-page="products"]) input:focus,body:not([data-page="products"]) select:focus,body:not([data-page="products"]) textarea:focus{border-color:rgba(101,229,245,.65);box-shadow:0 0 0 3px rgba(101,229,245,.09);outline:none}
+body:not([data-page="products"]) .page-pill,body:not([data-page="products"]) .role-badge,body:not([data-page="products"]) .access-chip{border-radius:999px}
+body:not([data-page="products"]) .page-notice{border-radius:13px;backdrop-filter:blur(12px)}
+body:not([data-page="products"]) .dedicated-footer{border-top:1px solid rgba(135,205,231,.13);color:#88a7bd}
+body:not([data-page="products"]) .zt-overview-topbar{background:rgba(4,16,31,.78);backdrop-filter:blur(22px);border-bottom:1px solid rgba(101,229,245,.15)}
+body:not([data-page="products"]) .zt-intro{padding:clamp(28px,5vw,58px);box-shadow:var(--zak-shadow)}
+body:not([data-page="products"]) .zt-intro h1{font-size:clamp(2.5rem,6vw,5.1rem);line-height:1.02}
+body:not([data-page="products"]) .zt-intro-copy{color:#bad0df}
+body:not([data-page="products"]) .zt-pill-row span{border:1px solid rgba(101,229,245,.19);background:rgba(101,229,245,.07);border-radius:999px;padding:9px 13px}
+body:not([data-page="products"]) .zt-overview-main{max-width:1380px}
+body:not([data-page="products"]) .zt-overview-main section{animation:zakSectionIn .6s both}
+body:not([data-page="products"]) .zt-overview-main section:nth-child(2){animation-delay:.07s}
+body:not([data-page="products"]) .zt-overview-main section:nth-child(3){animation-delay:.14s}
+body:not([data-page="products"]) .zt-overview-main section:nth-child(4){animation-delay:.21s}
+@keyframes zakPageEnter{from{opacity:0;transform:translateY(13px)}to{opacity:1;transform:translateY(0)}}
+@keyframes zakSectionIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:760px){body:not([data-page="products"]) .workspace-topbar{height:66px;padding-inline:14px}body:not([data-page="products"]) .page-top-actions{gap:7px;font-size:.68rem}body:not([data-page="products"]) .page-breadcrumb{font-size:.72rem}body:not([data-page="products"]) .dedicated-main{padding-top:17px}body:not([data-page="products"]) .dedicated-hero{align-items:flex-start;flex-direction:column;border-radius:21px}body:not([data-page="products"]) .welcome-panel{align-items:flex-start;flex-direction:column;border-radius:21px}body:not([data-page="products"]) .page-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body:not([data-page="products"]) .page-card{border-radius:17px}}
+@media(max-width:430px){body:not([data-page="products"]) .page-top-actions #pageUserLabel{max-width:94px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}body:not([data-page="products"]) .page-grid{gap:10px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}body:not([data-page="products"]) *,body:not([data-page="products"]) *:before,body:not([data-page="products"]) *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
