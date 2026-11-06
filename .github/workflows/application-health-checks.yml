@@ -1,5 +1,5 @@
 name: Daily application health checks
-# Recheck the live console after the successful Pages deployment 42165497818.
+# Molan Business now deploys from its private repository through Cloudflare Pages.
 
 on:
   schedule:
@@ -49,7 +49,6 @@ jobs:
           check_url "ZakiTech platform" "https://zakpollyqueens.github.io/Zakitech/"
           check_url "ZakiTech infrastructure monitor" "https://zakpollyqueens.github.io/Zakitech/infrastructure-monitor.html"
           check_url "Molan Business application" "https://molan-business.pages.dev/"
-          check_url "Molan Business index document" "https://zakpollyqueens.github.io/Molan-business-app-/index.html"
           check_url "ZakiChat application" "https://zakpollyqueens.github.io/ZakiChat-/"
           check_url "Ranidd Online Mart application" "https://ranidd-online-shopping.zakpollyqueens.workers.dev/"
           if [ "$failures" -gt 0 ]; then
