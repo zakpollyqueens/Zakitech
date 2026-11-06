@@ -1,4 +1,5 @@
 name: Daily application health checks
+# Recheck the live console after the successful Pages deployment 42165497818.
 
 on:
   schedule:
