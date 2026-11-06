@@ -1,6 +1,6 @@
 (()=>{"use strict";
 const root=document.getElementById("pageContent");if(!root)return;
-const palette=[["#63e5f4","99,229,244"],["#9b8cff","155,140,255"],["#66dfbd","102,223,189"],["#ffbd78","255,189,120"],["#77a9ff","119,169,255"],["#f29acb","242,154,203"]];
+const palette=[["#6ee7b7","110,231,183"],["#a78bfa","167,139,250"],["#60a5fa","96,165,250"],["#fbbf24","251,191,36"],["#fb7185","251,113,133"],["#94a3b8","148,163,184"]];
 function enhance(){const cards=Array.from(root.querySelectorAll(":scope > .page-card"));if(!cards.length)return;
 const portfolio=cards.find(c=>/company product portfolio/i.test(c.querySelector(".page-card-head h2")?.textContent||""));
 if(portfolio){portfolio.classList.add("hub-portfolio-card");const list=portfolio.querySelector(":scope > .page-list");if(list&&!list.classList.contains("hub-product-grid")){list.classList.add("hub-product-grid");Array.from(list.children).forEach((item,index)=>{if(!item.classList.contains("page-row")||item.classList.contains("hub-product-card"))return;item.classList.add("hub-product-card");const [accent,rgb]=palette[index%palette.length];item.style.setProperty("--hub-accent",accent);item.style.setProperty("--hub-accent-rgb",rgb);
