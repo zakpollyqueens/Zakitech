@@ -41,7 +41,9 @@ jobs:
             fi
           }
           check_url "ZakiTech platform" "https://zakpollyqueens.github.io/Zakitech/"
+          check_url "ZakiTech infrastructure monitor" "https://zakpollyqueens.github.io/Zakitech/infrastructure-monitor.html"
           check_url "Molan Business application" "https://zakpollyqueens.github.io/Molan-business-app-/"
+          check_url "Molan Business index document" "https://zakpollyqueens.github.io/Molan-business-app-/index.html"
           check_url "ZakiChat application" "https://zakpollyqueens.github.io/ZakiChat-/"
           check_url "Ranidd Online Mart application" "https://ranidd-online-shopping.zakpollyqueens.workers.dev/"
           if [ "$failures" -gt 0 ]; then
