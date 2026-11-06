@@ -1,0 +1,46 @@
+name: Daily application health checks
+
+on:
+  schedule:
+    - cron: "37 5 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/application-health-checks.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-application-health-checks
+  cancel-in-progress: false
+
+jobs:
+  check-applications:
+    name: Check registered ZakiTech applications
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check ZakiTech platform
+        run: |
+          set -euo pipefail
+          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://zakpollyqueens.github.io/Zakitech/)"
+          echo "ZakiTech platform HTTP $code"
+
+      - name: Check Molan Business application
+        run: |
+          set -euo pipefail
+          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://zakpollyqueens.github.io/Molan-business-app-/)"
+          echo "Molan Business application HTTP $code"
+
+      - name: Check ZakiChat application
+        run: |
+          set -euo pipefail
+          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://zakpollyqueens.github.io/ZakiChat-/)"
+          echo "ZakiChat application HTTP $code"
+
+      - name: Check Ranidd Online Mart application
+        run: |
+          set -euo pipefail
+          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://ranidd-online-shopping.zakpollyqueens.workers.dev/)"
+          echo "Ranidd Online Mart application HTTP $code"
