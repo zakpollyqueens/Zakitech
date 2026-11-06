@@ -65,3 +65,18 @@ jobs:
             --data '{}')"
           jq -e 'type == "string" and length > 0' <<< "$response" >/dev/null
           printf 'Molan Business database heartbeat confirmed: %s\n' "$(jq -r . <<< "$response")"
+ 
+      - name: Keep ZakiChat Supabase active
+        run: |
+          set -euo pipefail
+          config="$(curl --fail --silent --show-error --location --retry 2 https://raw.githubusercontent.com/zakpollyqueens/ZakiChat-/main/static/js/config.js)"
+          key="$(printf '%s\n' "$config" | sed -n '/const ZAKICHAT_SUPABASE_KEY =/{n;s/.*"\([^"]*\)".*/\1/p;}')"
+          test -n "$key"
+          response="$(curl --fail --silent --show-error --retry 3 --retry-delay 5 \
+            -X POST "https://xdpevlurgtvgduwzyoue.supabase.co/rest/v1/rpc/zakitech_keepalive" \
+            -H "apikey: $key" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            --data '{}')"
+          jq -e 'type == "string" and length > 0' <<< "$response" >/dev/null
+          printf 'ZakiChat database heartbeat confirmed: %s\n' "$(jq -r . <<< "$response")"
