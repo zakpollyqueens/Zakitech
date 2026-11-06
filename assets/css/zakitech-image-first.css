@@ -1,0 +1,20 @@
+/* ZakiTech image-first content system */
+body:not([data-page="products"]) .zak-visual-band{display:grid;grid-template-columns:1.55fr 1fr;gap:12px;margin:18px 0 26px;min-height:220px}
+body:not([data-page="products"]) .zak-visual-main,body:not([data-page="products"]) .zak-visual-side article{position:relative;overflow:hidden;isolation:isolate;border:1px solid rgba(126,218,239,.22);border-radius:21px;background:#0a2037;box-shadow:0 18px 42px rgba(0,0,0,.2)}
+body:not([data-page="products"]) .zak-visual-main{min-height:250px}
+body:not([data-page="products"]) .zak-visual-band img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transition:transform .7s cubic-bezier(.2,.7,.2,1);filter:saturate(.9)}
+body:not([data-page="products"]) .zak-visual-main:hover img,body:not([data-page="products"]) .zak-visual-side article:hover img{transform:scale(1.045)}
+body:not([data-page="products"]) .zak-visual-main:after,body:not([data-page="products"]) .zak-visual-side article:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(3,15,29,.86),rgba(3,15,29,.25) 75%),linear-gradient(0deg,rgba(3,15,29,.4),transparent 70%)}
+body:not([data-page="products"]) .zak-visual-copy{position:absolute;left:clamp(18px,3vw,32px);right:18px;bottom:22px;display:grid;gap:7px}
+body:not([data-page="products"]) .zak-visual-copy span{width:max-content;max-width:100%;padding:7px 11px;border:1px solid rgba(121,231,246,.3);border-radius:999px;background:rgba(5,26,44,.55);backdrop-filter:blur(10px);color:#a8f0fa;font-size:.66rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+body:not([data-page="products"]) .zak-visual-copy strong{color:#f5fcff;font-size:clamp(1.25rem,2.7vw,2rem);font-weight:800;letter-spacing:-.045em;text-shadow:0 4px 20px rgba(0,0,0,.25)}
+body:not([data-page="products"]) .zak-visual-side{display:grid;grid-template-rows:1fr 1fr;gap:12px}
+body:not([data-page="products"]) .zak-visual-side article{min-height:118px}
+body:not([data-page="products"]) .zak-visual-side .zak-visual-copy{left:17px;bottom:15px}
+body:not([data-page="products"]) .zak-visual-side .zak-visual-copy strong{font-size:1.05rem}
+body:not([data-page="products"]) .zak-visual-band{animation:zakVisualArrive .7s cubic-bezier(.2,.7,.2,1) both}
+@keyframes zakVisualArrive{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+body:not([data-page="products"]) .dedicated-hero p:not(.eyebrow){max-width:48ch}
+body:not([data-page="products"]) .dedicated-hero .eyebrow{font-size:.67rem}
+@media(max-width:760px){body:not([data-page="products"]) .zak-visual-band{grid-template-columns:1fr;min-height:0;gap:9px;margin:13px 0 20px}body:not([data-page="products"]) .zak-visual-main{min-height:205px}body:not([data-page="products"]) .zak-visual-side{grid-template-columns:1fr 1fr;grid-template-rows:1fr}body:not([data-page="products"]) .zak-visual-side article{min-height:112px;border-radius:15px}body:not([data-page="products"]) .zak-visual-main{border-radius:17px}body:not([data-page="products"]) .zak-visual-copy{left:17px;bottom:16px}body:not([data-page="products"]) .zak-visual-side .zak-visual-copy strong{font-size:.92rem}}
+@media(prefers-reduced-motion:reduce){body:not([data-page="products"]) .zak-visual-band,body:not([data-page="products"]) .zak-visual-band img{animation:none!important;transition:none!important}}
