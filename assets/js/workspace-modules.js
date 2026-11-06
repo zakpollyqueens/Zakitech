@@ -154,7 +154,7 @@ function renderDashboard(){
   const role=node("span","dashboard-team-role",String(p.role||"staff").replaceAll("_"," "));
   row.append(avatar,copy,role);team.append(row);
  });
- if(state.staff.length>5)team.append(node("div","module-meta","+"+(state.staff.length-5)+" more team members"));
+ if(state.staff.length>4)team.append(node("div","module-meta","+"+(state.staff.length-4)+" more team members"));
  const messageBox=$( "dashboardMessages" );messageBox.replaceChildren();
  const canSeeMessages=admin()||assigned("support_inbox");
  const recentMessages=canSeeMessages?state.messages.slice(0,4):[];
