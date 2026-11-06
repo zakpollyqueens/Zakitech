@@ -49,6 +49,9 @@ jobs:
           check_url "ZakiTech platform" "https://zakpollyqueens.github.io/Zakitech/"
           check_url "ZakiTech infrastructure monitor" "https://zakpollyqueens.github.io/Zakitech/infrastructure-monitor.html"
           check_url "Molan Business application" "https://molan-business.pages.dev/"
+          check_url "Molan Business profile overview" "https://molan-business.pages.dev/business-profiles/3d-printing-booking-agency/index.html"
+          check_url "Molan Business dynamic feature route" "https://molan-business.pages.dev/business-profiles/3d-printing-booking-agency/pages/operations-service-jobs/index.html"
+          check_url "Molan Business legacy feature route" "https://molan-business.pages.dev/business-profiles/3d-printing-equipment-hire/pages/3d-printing-operations/index.html"
           check_url "ZakiChat application" "https://zakpollyqueens.github.io/ZakiChat-/"
           check_url "Ranidd Online Mart application" "https://ranidd-online-shopping.zakpollyqueens.workers.dev/"
           if [ "$failures" -gt 0 ]; then
