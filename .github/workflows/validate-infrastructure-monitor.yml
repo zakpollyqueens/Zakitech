@@ -1,0 +1,37 @@
+name: Validate infrastructure monitor
+
+on:
+  push:
+    paths:
+      - "infrastructure-monitor.html"
+      - "assets/js/infrastructure-monitor.js"
+      - "assets/css/infrastructure-monitor.css"
+      - ".github/workflows/validate-infrastructure-monitor.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Validate monitor JavaScript syntax
+        run: node --check assets/js/infrastructure-monitor.js
+
+      - name: Validate required monitor assets and page bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s infrastructure-monitor.html
+          test -s assets/css/infrastructure-monitor.css
+          test -s assets/js/infrastructure-monitor.js
+          for id in pageUserLabel pageRefresh pageSignOut infraNotice infraDashboard infraAccessDenied infraDatabaseGrid infraAppGrid infraHistory; do
+            grep -q "id=\"$id\"" infrastructure-monitor.html
+          done
+          grep -q 'zt_service_monitors' assets/js/infrastructure-monitor.js
+          grep -q 'zt_service_health_checks' assets/js/infrastructure-monitor.js
+          echo "Infrastructure monitor assets and data bindings validated."
