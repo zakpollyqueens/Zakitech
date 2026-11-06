@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071426">
+  <meta name="description" content="Owner-only ZakiTech infrastructure health and database keepalive dashboard.">
+  <title>Infrastructure Monitor · ZakiTech</title>
+  <link rel="icon" href="assets/images/zakitech-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/workspace.css">
+  <link rel="stylesheet" href="assets/css/workspace-pages.css">
+  <link rel="stylesheet" href="assets/css/product-station.css">
+  <link rel="stylesheet" href="assets/css/infrastructure-monitor.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js" defer></script>
+  <script src="assets/js/supabase-config.js" defer></script>
+  <script src="assets/js/live-sync.js" defer></script>
+  <script src="assets/js/workstation-lock.js" defer></script>
+  <script src="assets/js/workspace-navigation.js" defer></script>
+  <script src="assets/js/infrastructure-monitor.js?v=20261106" defer></script>
+</head>
+<body class="workspace-page-body product-station-body infrastructure-monitor-body">
+  <header class="workspace-topbar page-topbar">
+    <div class="brand-group">
+      <button class="menu-toggle" id="pageMenuToggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+      <a class="brand" href="workspace.html"><span class="brand-mark" aria-hidden="true">Z</span><span class="brand-word">Zaki<span>Tech</span></span></a>
+      <span class="topbar-divider"></span><span class="page-breadcrumb">Infrastructure Monitor</span>
+    </div>
+    <div class="page-top-actions"><span class="page-live-dot"></span><span id="pageUserLabel">Verifying owner access…</span><button id="pageRefresh" class="page-logout" type="button">Refresh checks ↻</button><button id="pageSignOut" class="page-logout" type="button">Sign out</button></div>
+  </header>
+  <aside id="pageNavScrim" class="nav-scrim" hidden></aside>
+  <nav id="pageSideNav" class="workspace-nav" aria-label="Main navigation">
+    <div class="nav-caption">COMPANY WORKSPACE</div>
+    <a class="nav-button" href="workspace.html"><span>⌂</span> Dashboard</a>
+    <a class="nav-button" href="product-hub.html"><span>◈</span> Product Hub</a>
+    <a class="nav-button" href="product-station.html"><span>▣</span> Product Operations Station</a>
+    <a class="nav-button active" href="infrastructure-monitor.html"><span>◉</span> Infrastructure Monitor</a>
+    <a class="nav-button" href="release-review.html"><span>↟</span> Release review</a>
+    <a class="nav-button" href="molan-business-control.html"><span>◈</span> Molan Business Control Center</a>
+    <div class="nav-bottom">ZAKITECH <small>Equipping minds with IT solutions.<br>Owner-only infrastructure oversight</small></div>
+  </nav>
+  <main class="workspace-main dedicated-main infrastructure-main">
+    <section class="infra-hero">
+      <div>
+        <p class="eyebrow">ZAKITECH · MOLANO MAINTENANCE OPERATIONS</p>
+        <h1>Infrastructure <span>Monitor</span></h1>
+        <p>Daily database heartbeats, application availability, provider status and recent health history for the registered ZakiTech products.</p>
+        <div class="infra-schedule"><span><i></i> Database keepalive · Daily 05:17 UTC</span><span><i></i> Website checks · Daily 05:37 UTC</span><span><i></i> Weekly deeper review · Monday</span></div>
+      </div>
+      <div class="infra-orbit" aria-hidden="true"><div class="infra-ring"></div><div class="infra-core"><strong>4</strong><small>SUPABASE<br>PROJECTS</small></div></div>
+    </section>
+    <div id="infraNotice" class="page-notice" role="status" aria-live="polite" hidden></div>
+    <section id="infraAccessDenied" class="infra-empty" hidden><h2>Owner access required</h2><p>This infrastructure console is restricted to the ZakiTech Owner / CEO.</p></section>
+    <section id="infraDashboard" hidden>
+      <div class="infra-summary-grid">
+        <article class="infra-summary"><span>Registered services</span><strong id="infraTotal">—</strong><small>Databases and application endpoints</small></article>
+        <article class="infra-summary"><span>Healthy services</span><strong id="infraHealthy">—</strong><small>Most recent verified check</small></article>
+        <article class="infra-summary"><span>Services needing attention</span><strong id="infraIssues">—</strong><small>Degraded or unavailable</small></article>
+        <article class="infra-summary"><span>Latest recorded check</span><strong id="infraLastCheck">—</strong><small>UTC timestamp</small></article>
+      </div>
+      <section class="infra-section">
+        <div class="infra-section-heading"><div><p class="eyebrow">SUPABASE PROVIDER STATUS</p><h2>Database keepalive</h2><p>Daily read-only RPC requests generate real database activity without changing customer or business data.</p></div><span class="infra-counter" id="infraDatabaseCount">— databases</span></div>
+        <div id="infraDatabaseGrid" class="infra-service-grid"><div class="page-empty">Loading database monitors…</div></div>
+      </section>
+      <section class="infra-section">
+        <div class="infra-section-heading"><div><p class="eyebrow">LIVE APPLICATION AVAILABILITY</p><h2>Websites and services</h2><p>HTTP availability is monitored separately from the health of each database.</p></div><span class="infra-counter" id="infraAppCount">— applications</span></div>
+        <div id="infraAppGrid" class="infra-service-grid"><div class="page-empty">Loading application monitors…</div></div>
+      </section>
+      <section class="infra-section infra-history-section">
+        <div class="infra-section-heading"><div><p class="eyebrow">AUDITABLE HEALTH HISTORY</p><h2>Recent checks</h2><p>Latest results recorded in the ZakiTech infrastructure registry.</p></div></div>
+        <div class="infra-table-wrap"><table class="infra-table"><thead><tr><th>Service</th><th>Status</th><th>Checked</th><th>Result</th><th>Evidence</th></tr></thead><tbody id="infraHistory"><tr><td colspan="5">Loading health history…</td></tr></tbody></table></div>
+      </section>
+      <section class="infra-note">
+        <strong>Important reliability note</strong>
+        <p>Daily activity is the preventive measure, not a guarantee against Supabase inactivity pausing. Supabase can still pause Free projects under its policy. If a project is paused, the maintenance agent is authorised to restore it and verify the recovery. Paid plans avoid inactivity-based pausing, but no plan change or billing action is performed automatically.</p>
+      </section>
+    </section>
+    <footer class="dedicated-footer"><span>Zakmolanitech Solutions</span><span>Equipping minds with IT solutions. · Infrastructure Monitor</span></footer>
+  </main>
+</body>
+</html>
