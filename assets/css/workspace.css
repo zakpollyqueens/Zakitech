@@ -624,3 +624,20 @@ body{background:radial-gradient(ellipse at 78% -8%,rgba(91,37,173,.16),transpare
 .reference-company-rows a{color:#bd8cff;text-decoration:none}.reference-company-rows a:hover{text-decoration:underline}
 @media(max-width:1050px){.reference-overview-grid{grid-template-columns:1fr}.reference-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:620px){.reference-overview-grid{gap:13px;margin:14px 0 18px}.reference-overview-grid>.dashboard-widget{padding:16px}.reference-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.reference-shortcut{min-height:106px;padding:12px}.reference-company-rows>div{grid-template-columns:20px minmax(75px,.8fr) minmax(0,1.2fr);font-size:.7rem}.reference-company-rows strong{font-size:.67rem}}
+
+
+/* ZakiTech cinematic company workspace palette and interaction polish. */
+:root{color-scheme:dark;--bg:#090e1e;--panel:#141c32;--line:rgba(192,181,255,.17);--cyan:#b7a6ff;--text:#f5f5ff;--muted:#aeb9ce;--green:#6ee7b7;--violet:#a78bfa;--gold:#fbbf24;--coral:#fb7185}
+body{background:radial-gradient(ellipse at 12% 0%,rgba(133,94,220,.19),transparent 38%),radial-gradient(ellipse at 92% 28%,rgba(36,155,123,.12),transparent 34%),linear-gradient(145deg,#080d1b,#10182a 58%,#0b1722);}
+.workspace-topbar{background:rgba(8,13,28,.84);border-bottom-color:rgba(192,181,255,.16);backdrop-filter:blur(22px) saturate(145%);box-shadow:0 12px 34px rgba(0,0,0,.2)}
+.brand-mark{background:linear-gradient(135deg,#c4b5fd,#8067e8);color:#17142d;box-shadow:0 0 24px rgba(167,139,250,.22)}.brand-cyan,.role-badge,.access-chip{color:#c4b5fd}
+.outline-button,.small-action{border-color:rgba(192,181,255,.22);background:rgba(255,255,255,.035);color:#f1efff}
+.primary-button{background:linear-gradient(110deg,#a78bfa,#8067e8 65%,#647bd5);color:#fff;box-shadow:0 10px 28px rgba(128,103,232,.2)}
+.welcome-panel{border-color:rgba(192,181,255,.23);background:radial-gradient(ellipse at 84% 12%,rgba(167,139,250,.2),transparent 35%),radial-gradient(ellipse at 12% 100%,rgba(110,231,183,.1),transparent 40%),linear-gradient(120deg,#171d38,#0d2030 75%)}
+.welcome-panel h1 span,.eyebrow{color:#c4b5fd}
+.quick-card,.staff-panel,.page-card,.metric-card,.panel{border-color:rgba(192,181,255,.16);background:linear-gradient(145deg,rgba(25,33,58,.9),rgba(10,21,37,.96));box-shadow:0 18px 42px rgba(0,0,0,.19);transition:transform .24s,border-color .24s,box-shadow .24s}
+.quick-card:hover,.staff-panel:hover,.page-card:hover,.metric-card:hover{transform:translateY(-3px);border-color:rgba(196,181,253,.34);box-shadow:0 24px 48px rgba(0,0,0,.24),0 0 26px rgba(167,139,250,.07)}
+.tile-icon{background:rgba(167,139,250,.13);color:#c4b5fd}.metric-cyan .metric-icon,.metric-cyan .metric-dot{color:#c4b5fd;background:rgba(167,139,250,.14)}.metric-violet .metric-icon{color:#c4b5fd}.metric-green .metric-icon{color:#6ee7b7}.metric-amber .metric-icon{color:#fbbf24}.metric-coral .metric-icon{color:#fb7185}
+.staff-form input,.staff-form select,.profile-form input,.account-form input{border-color:rgba(192,181,255,.2);background:#0b1428}.staff-form input:focus,.staff-form select:focus,.profile-form input:focus,.account-form input:focus{outline-color:rgba(167,139,250,.35);border-color:#a78bfa}
+.staff-role{color:#c4b5fd}.status-pill{background:rgba(110,231,183,.12);color:#8bf0c7}
+@media(prefers-reduced-motion:reduce){.quick-card,.staff-panel,.page-card,.metric-card{transition:none!important}}
