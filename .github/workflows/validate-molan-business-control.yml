@@ -34,6 +34,32 @@ jobs:
           test -s product-security.html
           test -s product-blockers.html
           test -s product-help-center.html
+      - name: Validate secure billing and checkout wiring
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const billing = fs.readFileSync('billing-center.html', 'utf8');
+          const checkout = fs.readFileSync('payment.html', 'utf8');
+          const backend = fs.readFileSync('supabase/functions/zakitech-billing/index.ts', 'utf8');
+          const migration = fs.readFileSync('supabase/migrations/20261106210000_zt_reusable_payment_invoice_management.sql', 'utf8');
+          const tokenMigration = fs.readFileSync('supabase/migrations/20261106210100_zt_store_private_invoice_share_tokens.sql', 'utf8');
+          const checks = [
+            [billing.includes('api("list","POST")'), 'Invoice list must use POST, matching the Edge Function method guard.'],
+            [billing.includes('api("create","POST"'), 'Invoice creation must use POST.'],
+            [checkout.includes('action=checkout'), 'Customer checkout must call the billing checkout action.'],
+            [backend.includes('Deno.env.get("JJUMA_PUBLIC_API_KEY")'), 'JumaPay public API credential must be read server-side.'],
+            [backend.includes('Deno.env.get("JJUMA_SECRET_API_KEY")'), 'JumaPay secret API credential must be read server-side.'],
+            [backend.includes('Deno.env.get("JJUMA_WEBHOOK_SECRET")'), 'JumaPay webhook signing secret must be read server-side.'],
+            [backend.includes('X-Jjuma-Signature') && backend.includes('hmac(WEBHOOK_SECRET'), 'Webhook signatures must be verified.'],
+            [backend.includes('/payments/verify/') && backend.includes('verified_amount'), 'Payment must be provider-verified before being marked paid.'],
+            [backend.includes('u.hostname==="pay.jjuma.com"'), 'Checkout redirects must be restricted to the trusted JumaPay host.'],
+            [backend.includes('public_token_hash') && migration.includes('zt_payment_invoices'), 'Invoice links must be backed by the private invoice table and token hash.'],
+            [tokenMigration.includes('public_token'), 'Private invoice share-token migration must be present.'],
+            [!/(JJUMA_(?:PUBLIC|SECRET|WEBHOOK)_API_KEY|SUPABASE_SERVICE_ROLE_KEY)\s*[:=]/i.test(billing + checkout), 'Server credentials must never be embedded in browser pages.']
+          ];
+          for (const [ok, message] of checks) if (!ok) throw new Error(message);
+          console.log('Secure ZakiTech billing and checkout wiring checks passed.');
+          NODE
       - name: Check page wiring and secure backend actions
         run: |
           node <<'NODE'
