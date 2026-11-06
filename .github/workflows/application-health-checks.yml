@@ -21,26 +21,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check ZakiTech platform
+      - name: Check all registered application endpoints
+        shell: bash
         run: |
-          set -euo pipefail
-          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://zakpollyqueens.github.io/Zakitech/)"
-          echo "ZakiTech platform HTTP $code"
-
-      - name: Check Molan Business application
-        run: |
-          set -euo pipefail
-          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://zakpollyqueens.github.io/Molan-business-app-/)"
-          echo "Molan Business application HTTP $code"
-
-      - name: Check ZakiChat application
-        run: |
-          set -euo pipefail
-          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://zakpollyqueens.github.io/ZakiChat-/)"
-          echo "ZakiChat application HTTP $code"
-
-      - name: Check Ranidd Online Mart application
-        run: |
-          set -euo pipefail
-          code="$(curl --fail --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' https://ranidd-online-shopping.zakpollyqueens.workers.dev/)"
-          echo "Ranidd Online Mart application HTTP $code"
+          set -uo pipefail
+          failures=0
+          check_url() {
+            name="$1"
+            url="$2"
+            code="$(curl --silent --show-error --location --retry 2 --max-time 30 -o /dev/null -w '%{http_code}' "$url")"
+            curl_status=$?
+            if [ "$curl_status" -ne 0 ] || [[ ! "$code" =~ ^2[0-9][0-9]$ && ! "$code" =~ ^3[0-9][0-9]$ ]]; then
+              echo "::error title=$name health check failed::HTTP $code (curl exit $curl_status) at $url"
+              echo "- ❌ $name: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+              failures=$((failures + 1))
+            else
+              echo "$name is reachable: HTTP $code"
+              echo "- ✅ $name: HTTP $code" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          }
+          check_url "ZakiTech platform" "https://zakpollyqueens.github.io/Zakitech/"
+          check_url "Molan Business application" "https://zakpollyqueens.github.io/Molan-business-app-/"
+          check_url "ZakiChat application" "https://zakpollyqueens.github.io/ZakiChat-/"
+          check_url "Ranidd Online Mart application" "https://ranidd-online-shopping.zakpollyqueens.workers.dev/"
+          if [ "$failures" -gt 0 ]; then
+            echo "$failures application endpoint(s) failed."
+            exit 1
+          fi
+          echo "All registered application endpoints are reachable."
