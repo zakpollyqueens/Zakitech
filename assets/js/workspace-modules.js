@@ -140,7 +140,11 @@ function renderDashboard(){
  if(!items.length)activity.append(node("div","dashboard-empty","Recent announcements, tasks, and product activity will appear here."));
  items.slice(0,4).forEach(item=>{const row=node("div","activity-row"),icon=node("span","activity-icon",item.icon),copy=node("div","activity-copy");copy.append(node("strong","",item.title),node("small","",item.detail));row.append(icon,copy);activity.append(row)});
  const team=$( "dashboardTeam" );team.replaceChildren();
- const members=state.staff.slice(0,5);
+ const aiRow=node("a","dashboard-team-row"),aiAvatar=node("span","dashboard-team-avatar","M"),aiCopy=node("div","dashboard-team-copy");
+ aiRow.href="ai-operations.html";aiRow.setAttribute("aria-label","Open Molano AI digital staff workspace");aiRow.style.color="inherit";aiRow.style.textDecoration="none";
+ aiCopy.append(node("strong","","Molano AI"),node("small","","Digital AI staff · Company assistant"));
+ aiRow.append(aiAvatar,aiCopy,node("span","dashboard-team-role","AI staff"));team.append(aiRow);
+ const members=state.staff.slice(0,4);
  if(!members.length){team.append(node("div","dashboard-empty",state.profile?"Team directory details will appear here when available.":"Team information is not available for this account."))}
  members.forEach(p=>{
   const row=node("div","dashboard-team-row"),avatar=node("span","dashboard-team-avatar");
