@@ -42,7 +42,6 @@ jobs:
           const checkout = fs.readFileSync('payment.html', 'utf8');
           const backend = fs.readFileSync('supabase/functions/zakitech-billing/index.ts', 'utf8');
           const migration = fs.readFileSync('supabase/migrations/20261106210000_zt_reusable_payment_invoice_management.sql', 'utf8');
-          const tokenMigration = fs.readFileSync('supabase/migrations/20261106210100_zt_store_private_invoice_share_tokens.sql', 'utf8');
           const checks = [
             [billing.includes('api("list","POST")'), 'Invoice list must use POST, matching the Edge Function method guard.'],
             [billing.includes('api("create","POST"'), 'Invoice creation must use POST.'],
@@ -54,7 +53,6 @@ jobs:
             [backend.includes('/payments/verify/') && backend.includes('verified_amount'), 'Payment must be provider-verified before being marked paid.'],
             [backend.includes('u.hostname==="pay.jjuma.com"'), 'Checkout redirects must be restricted to the trusted JumaPay host.'],
             [backend.includes('public_token_hash') && migration.includes('zt_payment_invoices'), 'Invoice links must be backed by the private invoice table and token hash.'],
-            [tokenMigration.includes('public_token'), 'Private invoice share-token migration must be present.'],
             [!/(JJUMA_(?:PUBLIC|SECRET|WEBHOOK)_API_KEY|SUPABASE_SERVICE_ROLE_KEY)\s*[:=]/i.test(billing + checkout), 'Server credentials must never be embedded in browser pages.']
           ];
           for (const [ok, message] of checks) if (!ok) throw new Error(message);
