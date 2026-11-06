@@ -73,6 +73,51 @@ Deno.serve(async(req:Request)=>{
  const requireWorkstation=async(w:Workstation,pid?:string|null)=>{if(!await hasAccess(w,pid))throw Object.assign(Error("This workstation has not been assigned to your account."),{status:403})};
  const productExists=async(id:string)=>{const {data,error}=await db.from("zt_products").select("id").eq("id",id).maybeSingle();if(error||!data)throw Object.assign(Error("Product not found."),{status:404})};
  try{
+  if(action==="superadmin-update-product"){
+   if(actor.role!=="owner")return reply(403,{error:"Only the ZakiTech Owner / CEO can use the Product Super Admin Control Station."});
+   const id=clean(b.id,80),name=clean(b.name,120),description=clean(b.description,3000),repoUrl=clean(b.repository_url,500),siteUrl=clean(b.website_url,500),adminUrl=clean(b.admin_center_url,500),version=clean(b.current_version,40);
+   if(!id||name.length<2)return reply(400,{error:"A valid product and name are required."});
+   const {data:before,error:be}=await db.from("zt_products").select("id,slug,name,status,current_version").eq("id",id).maybeSingle();
+   if(be||!before)return reply(404,{error:"Product not found."});
+   if(before.slug!=="ranidd-online-mart")return reply(403,{error:"This control station is currently scoped to Ranidd Online Mart only."});
+   const {data:updated,error}=await db.from("zt_products").update({name,description,repository_url:repoUrl||null,website_url:siteUrl||null,admin_center_url:adminUrl||null,current_version:version||null,updated_at:new Date().toISOString()}).eq("id",id).select().single();
+   if(error||!updated)throw Error("Could not update the Ranidd product record.");
+   await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_superadmin_details_updated",details:{product_id:id,product_slug:before.slug,previous_name:before.name,new_name:name,version:version||null}});
+   return reply(200,{message:"Ranidd product details updated and audited.",product:updated});
+  }
+  if(action==="superadmin-product-command"){
+   if(actor.role!=="owner")return reply(403,{error:"Only the ZakiTech Owner / CEO can issue product-level super-admin commands."});
+   const id=clean(b.product_id,80),kind=clean(b.command,40);
+   const {data:product,error:pe}=await db.from("zt_products").select("id,slug,name,current_version,status").eq("id",id).maybeSingle();
+   if(pe||!product)return reply(404,{error:"Product not found."});
+   if(product.slug!=="ranidd-online-mart")return reply(403,{error:"Commands are restricted to Ranidd Online Mart in this control station."});
+   if(kind==="assign_task"){
+    const title=clean(b.title,160),description=clean(b.description,5000),assignee=clean(b.assigned_to,80),priority=clean(b.priority,20)||"normal",due=clean(b.due_at,60)||null;
+    if(title.length<2||!assignee||!["low","normal","high","urgent"].includes(priority))return reply(400,{error:"A task title, active assignee and valid priority are required."});
+    const {data:target,error:te}=await db.from("zt_profiles").select("user_id,status").eq("user_id",assignee).maybeSingle();
+    if(te||!target||target.status!=="active")return reply(400,{error:"Choose an active ZakiTech staff member."});
+    const {data:task,error}=await db.from("zt_tasks").insert({title,description,assigned_to:assignee,created_by:uid,product_id:id,priority,due_at:due,status:"assigned"}).select().single();
+    if(error||!task)throw Error("Could not assign the product task.");
+    await db.from("zt_audit_events").insert({actor_user_id:uid,target_user_id:assignee,event_type:"product_superadmin_task_assigned",details:{product_id:id,task_id:task.id,title,priority}});
+    return reply(201,{message:"Task assigned to the Ranidd product team.",task});
+   }
+   if(kind==="publish_notice"){
+    const title=clean(b.title,160),body=clean(b.body,5000),type=clean(b.notification_type,40)||"update",audience=clean(b.audience,40)||"staff";
+    if(title.length<2||body.length<2||!["general","update","maintenance","security","announcement"].includes(type)||!["product_users","staff","all_company"].includes(audience))return reply(400,{error:"Provide a valid notice title, message, type and audience."});
+    const {data:notice,error}=await db.from("zt_notifications").insert({product_id:id,title,body,notification_type:type,audience,status:"published",created_by:uid,published_at:new Date().toISOString()}).select().single();
+    if(error||!notice)throw Error("Could not publish the product notice.");
+    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_superadmin_notice_published",details:{product_id:id,notification_id:notice.id,title,audience,type}});
+    return reply(201,{message:"Ranidd product notice published and audited.",notice});
+   }
+   if(kind==="pause_product"||kind==="resume_product"){
+    const next=kind==="pause_product"?"paused":"in_development";
+    const {data:updated,error}=await db.from("zt_products").update({status:next,updated_at:new Date().toISOString()}).eq("id",id).select().single();
+    if(error||!updated)throw Error("Could not update the product lifecycle status.");
+    await db.from("zt_audit_events").insert({actor_user_id:uid,event_type:"product_superadmin_lifecycle_command",details:{product_id:id,command:kind,previous_status:product.status,new_status:next}});
+    return reply(200,{message:"Ranidd lifecycle status changed to "+next+".",product:updated});
+   }
+   return reply(400,{error:"Unsupported product command."});
+  }
   if(action==="bootstrap"){
    let assignmentsQuery=db.from("zt_workstation_assignments").select("id,user_id,workstation,product_id,created_at").order("created_at",{ascending:false});
    if(!isAdmin&&actor.role!=="receptionist")assignmentsQuery=assignmentsQuery.eq("user_id",uid);
