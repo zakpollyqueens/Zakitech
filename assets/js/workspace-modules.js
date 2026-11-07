@@ -1,4 +1,5 @@
 (()=>{"use strict";
+const fh=document.createElement("script");fh.src=new URL("feature-help.js",document.currentScript.src).href;fh.defer=true;document.head.append(fh);
 for(const src of ["assets/js/workspace-preferences.js","assets/js/workspace-navigation.js"]){if(!document.querySelector('script[src="'+src+'"]')){const tag=document.createElement("script");tag.src=src;tag.async=false;document.head.append(tag)}}
 const client=window.ZakiTechSupabase;if(!client)return;
 const $=id=>document.getElementById(id);
